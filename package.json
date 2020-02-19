@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "name": "me.bilalakil.my-unity-library",
+  "displayName": "My Library",
+  "description": "Suite of Unity extensions Bilal built up over time",
+  "author": {
+    "name": "Bilal Akil",
+    "email": "mail@bilalakil.me",
+    "url": "https://bilalakil.me"
+  }
+}
