@@ -1,0 +1,12 @@
+﻿{
+	"name": "BilalAkil.MyLibrary.Runtime",
+    "references": [],
+    "optionalUnityReferences": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": []
+}
