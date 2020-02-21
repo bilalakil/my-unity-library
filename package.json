@@ -1,11 +1,19 @@
 {
-  "version": "0.0.1",
+  "version": "0.0.2",
   "name": "me.bilalakil.my-unity-library",
   "displayName": "My Library",
-  "description": "Suite of Unity extensions Bilal built up over time",
+  "type": "library",
+  "description": "Suite of Unity extensions built up over time. There is currently no documentation - you'll need to manually inspect the source code.",
   "author": {
     "name": "Bilal Akil",
     "email": "mail@bilalakil.me",
     "url": "https://bilalakil.me"
-  }
+  },
+  "samples": [
+    {
+      "displayName": "WebGLTemplates",
+      "description": "Contains templates for: Kongregate. Import, then move the WebGLTemplates folder into Assets/, and optionally delete the generated Samples folders.",
+      "path": "Samples~/WebGLTemplates"
+    }
+  ]
 }
