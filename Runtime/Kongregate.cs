@@ -12,7 +12,7 @@ public class Kongregate : MonoBehaviour
 
     public static void SetStat(string name, int value)
     {
-        if (!_i?._connected ?? false) return;
+        if (!(_i?._connected ?? false)) return;
         KongregateSubmitStat(name, value);
     }
 
