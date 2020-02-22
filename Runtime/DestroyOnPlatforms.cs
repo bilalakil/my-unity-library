@@ -19,6 +19,7 @@ public class DestroyOnPlatforms : MonoBehaviour
     /// </summary>
     public bool invert;
     public bool phone;
+    public bool web;
 
     void Awake()
     {
@@ -30,7 +31,8 @@ public class DestroyOnPlatforms : MonoBehaviour
     {
         var plat = Application.platform;
         var match =
-            (phone && Array.IndexOf(_phones, phone) != -1);
+            (phone && Array.IndexOf(_phones, plat) != -1)
+            || (web && plat == RuntimePlatform.WebGLPlayer);
 
         return invert ? !match : match;
     }
