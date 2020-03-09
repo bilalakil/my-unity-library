@@ -4,9 +4,17 @@ using UnityEngine;
 
 public class Kongregate : MonoBehaviour
 {
+#if UNITY_WEBGL
     [DllImport("__Internal")] static extern bool KongregateInit();
+#else
+    static bool KongregateInit() { return false; }
+#endif
 
+#if UNITY_WEBGL
     [DllImport("__Internal")] static extern void KongregateSubmitStat(string stat, int value);
+#else
+    static void KongregateSubmitStat(string stat, int value) {}
+#endif
 
     static Kongregate _i;
 
