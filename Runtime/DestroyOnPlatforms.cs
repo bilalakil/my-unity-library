@@ -26,14 +26,15 @@ public class DestroyOnPlatforms : MonoBehaviour
 
     void Awake()
     {
-        if (ShouldDestroyGameObject())
+        var destroy = ShouldDestroyGameObject();
+
+        if (destroyChildren)
         {
-            if (destroyChildren)
-            {
-                foreach (Transform child in transform) Destroy(child.gameObject);
-            }
-            else Destroy(gameObject);
+            foreach (Transform child in transform)
+                if (destroy) Destroy(child.gameObject);
+                else child.gameObject.SetActive(true);
         }
+        else if (destroy) Destroy(gameObject);
 
         Destroy(this);
     }
