@@ -13,25 +13,39 @@ public class DestroyOnPlatforms : MonoBehaviour
         RuntimePlatform.Android
     };
 
-    /// <summary>
-    /// Instead of destroying the game object if there is a match,
-    /// only destroy it if there is not a match.
-    /// </summary>
+    [Tooltip("Destroy child game objects instead of this game object.")]
+    public bool destroyChildren;
+    [Space]
+    [Tooltip("Instead of destroying the game object on platform match, only destroy it if it doesn't.")]
     public bool invert;
+    public bool windows;
+    public bool mac;
+    public bool linux;
     public bool phone;
     public bool web;
 
     void Awake()
     {
-        if (ShouldDestroyGameObject()) Destroy(gameObject);
-        else Destroy(this);
+        if (ShouldDestroyGameObject())
+        {
+            if (destroyChildren)
+            {
+                foreach (Transform child in transform) Destroy(child.gameObject);
+            }
+            else Destroy(gameObject);
+        }
+
+        Destroy(this);
     }
 
     bool ShouldDestroyGameObject()
     {
         var plat = Application.platform;
         var match =
-            (phone && Array.IndexOf(_phones, plat) != -1)
+            (windows && (plat == RuntimePlatform.WindowsPlayer || plat == RuntimePlatform.WindowsEditor))
+            || (mac && (plat == RuntimePlatform.OSXPlayer || plat == RuntimePlatform.OSXEditor))
+            || (linux && (plat == RuntimePlatform.LinuxPlayer || plat == RuntimePlatform.LinuxEditor))
+            || (phone && Array.IndexOf(_phones, plat) != -1)
             || (web && plat == RuntimePlatform.WebGLPlayer);
 
         return invert ? !match : match;
