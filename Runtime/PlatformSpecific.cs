@@ -19,16 +19,28 @@ public class PlatformSpecific : MonoBehaviour
 
     static bool _testInvert;
 
-    [MenuItem("Other/Test/PlatformSpecific: Test Invert")]
+    [MenuItem("Other/Play Mode/PlatformSpecific: Test Invert")]
     static void TestInvert()
     {
+        if (!Application.isPlaying)
+        {
+            Debug.LogError("PlatformSpecific: Test Invert - Must be used in play mode!");
+            return;
+        }
+
         _testInvert = !_testInvert;
         onTestChanged?.Invoke();
     }
 
-    [MenuItem("Other/Test/PlatformSpecific: Reset Test Invert")]
+    [MenuItem("Other/Play Mode/PlatformSpecific: Reset Test Invert")]
     static void ResetTestInvert()
     {
+        if (!Application.isPlaying)
+        {
+            Debug.LogError("PlatformSpecific: Reset Test Invert - Must be used in play mode!");
+            return;
+        }
+
         _testInvert = false;
         onTestChanged?.Invoke();
     }
@@ -66,6 +78,10 @@ public class PlatformSpecific : MonoBehaviour
 
         Do();
     }
+
+#if UNITY_EDITOR
+    void OnDestroy() => onTestChanged -= Do;
+#endif
 
     void Do()
     {
