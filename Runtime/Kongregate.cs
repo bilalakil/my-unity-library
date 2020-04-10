@@ -6,13 +6,9 @@ public class Kongregate : MonoBehaviour
 {
 #if UNITY_WEBGL
     [DllImport("__Internal")] static extern bool KongregateInit();
-#else
-    static bool KongregateInit() { return false; }
-#endif
-
-#if UNITY_WEBGL
     [DllImport("__Internal")] static extern void KongregateSubmitStat(string stat, int value);
 #else
+    static bool KongregateInit() { return false; }
     static void KongregateSubmitStat(string stat, int value) {}
 #endif
 
@@ -20,11 +16,11 @@ public class Kongregate : MonoBehaviour
 
     public static void SetStat(string name, int value)
     {
-        if (!(_i?._connected ?? false)) return;
+        if (_i == null || !_i._connected) return;
         KongregateSubmitStat(name, value);
     }
 
-    [RuntimeInitializeOnLoadMethod]
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     static void Init()
     {
         if (Application.platform != RuntimePlatform.WebGLPlayer) return;

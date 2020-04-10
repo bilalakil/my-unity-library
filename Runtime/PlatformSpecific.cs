@@ -10,7 +10,7 @@ using UnityEditor;
 /// and destroys the game object if there is no match.
 ///
 /// Note that in the editor, instead of destroying the object, it just disables it
-/// to allow testing via Other > Test > Invert Platform Match.
+/// to allow testing via Other/Play Mode/PlatformSpecific: Test Invert.
 /// </summary>
 public class PlatformSpecific : MonoBehaviour
 {

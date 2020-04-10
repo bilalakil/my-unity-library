@@ -31,9 +31,9 @@ public class Async
         MaybeTakeStep();
     }
 
-    // ======== Coroutines
+    // ## Coroutines
 
-    // ==== Then
+    // #### Then
     
     public Async Then(Action cb)
     {
@@ -45,7 +45,7 @@ public class Async
     }
 
 
-    // ==== Lerp
+    // #### Lerp
     
     public Async Lerp(float from, float to, float over, Action<float> step)
     {
@@ -74,7 +74,7 @@ public class Async
     }
 
 
-    // ==== Wait
+    // #### Wait
     
     public Async Wait(float secs)
     {
@@ -90,7 +90,7 @@ public class Async
     }
 
 
-    // ==== Every
+    // #### Every
     
     public Async Every(float secs, Action cb)
     {
@@ -109,7 +109,7 @@ public class Async
     }
 
 
-    // ==== LoadScene
+    // #### LoadScene
     
     public Async LoadScene(string path)
     {
@@ -129,7 +129,7 @@ public class Async
 
 [AddComponentMenu("")] // To prevent it from showing up in the Add Component list
 [DefaultExecutionOrder(-10000)]
-/// <summary>Exists to be the default host for coroutines started from the Async class.</summary>
+/// <summary>Exists to be the default host for coroutines started from the `Async` class.</summary>
 public class AsyncHelper : MonoBehaviour
 {
     public static AsyncHelper I { get; private set; }
