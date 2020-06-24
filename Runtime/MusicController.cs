@@ -16,8 +16,7 @@ using UnityEngine.Assertions;
  * You can create multiple playlists within this object if needed.
  *
  * #### Hot-reloading
- * MusicController and MusicPlaylist do not break with regards to hot-reloading.
- * However, all playlists are deregistered and re-registered when this happens,
+ * Caveat: all playlists are deregistered and re-registered when this happens,
  * (meaning music will stop and only start again if there is an autoPlay list).
  */
 
@@ -56,7 +55,7 @@ public class MusicController : MonoBehaviour
     Dictionary<string, MusicPlaylist> _playlists;
 
     MusicPlaylist _activePlaylist;
-    AudioSource[] _tracks;
+    IReadOnlyList<AudioSource> _tracks;
     int _trackIndex;
     AudioSource _cur;
     Coroutine _playCoroutine;
@@ -117,7 +116,7 @@ public class MusicController : MonoBehaviour
     {
         if (_cur != null) _cur.Stop();
 
-        _trackIndex = (_trackIndex + 1) % _tracks.Length;
+        _trackIndex = (_trackIndex + 1) % _tracks.Count;
 
         _cur = _tracks[_trackIndex];
         _cur.Play();

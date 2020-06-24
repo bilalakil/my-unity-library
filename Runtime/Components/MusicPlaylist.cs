@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 
 /**
  * ## Notes
@@ -11,10 +12,12 @@
 
 public class MusicPlaylist : MonoBehaviour
 {
+    public IReadOnlyList<AudioSource> tracks => _tracks;
+
     public bool autoStart;
     public bool shuffle;
 
-    [HideInInspector] public AudioSource[] tracks;
+    AudioSource[] _tracks;
 
     void Awake() => UpdateTracks();
 
@@ -24,5 +27,5 @@ public class MusicPlaylist : MonoBehaviour
 
     void OnDisable() => MusicController.DeregisterPlaylist(this);
 
-    void UpdateTracks() => tracks = GetComponentsInChildren<AudioSource>();
+    void UpdateTracks() => _tracks = GetComponentsInChildren<AudioSource>();
 }

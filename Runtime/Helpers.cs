@@ -4,7 +4,7 @@ using UnityEngine;
 
 public static class Helpers
 {
-    public static T[] Shuffle_<T>(this IReadOnlyList<T> list) =>
+    public static IReadOnlyList<T> Shuffle_<T>(this IReadOnlyList<T> list) =>
         list.OrderBy(_ => Random.value).ToArray();
 
     const string _clonedGameObjectSuffix = "(Clone)";
