@@ -4,6 +4,9 @@ using UnityEngine;
 
 public static class Helpers
 {
+    public static T PickRandom<T>(this IReadOnlyList<T> list) =>
+        list[Random.Range(0, list.Count)];
+
     public static IReadOnlyList<T> Shuffle_<T>(this IReadOnlyList<T> list) =>
         list.OrderBy(_ => Random.value).ToArray();
 
