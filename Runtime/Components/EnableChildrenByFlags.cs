@@ -16,17 +16,24 @@ public class EnableChildrenByFlags : MonoBehaviour
 
 #pragma warning disable CS0649
     [SerializeField] Conditions[] _conditions;
+    [SerializeField] GameObject[] _specificChildren;
 #pragma warning restore CS0649
+
+    bool _matched;
 
     [NonSerialized] HashSet<string> _curFlags = new HashSet<string>();
 
     void OnEnable() => Refresh();
+
+    void OnTransformChildrenChanged() => EnableChildren();
+
     void OnDisable() => DeregisterListeners();
 
     public void Refresh()
     {
         if (isActiveAndEnabled) UpdateFlagListeners();
         ReviewFlags();
+        EnableChildren();
     }
 
     void UpdateFlagListeners()
@@ -53,7 +60,7 @@ public class EnableChildrenByFlags : MonoBehaviour
 
     void ReviewFlags()
     {
-        var matched = true;
+        _matched = true;
 
         foreach (var cond in _conditions)
         {
@@ -71,13 +78,20 @@ public class EnableChildrenByFlags : MonoBehaviour
 
             localMatch = cond.not ? !localMatch : localMatch;
 
-            matched = matched && localMatch;
+            _matched = _matched && localMatch;
 
-            if (!matched) break;
+            if (!_matched) break;
         }
+    }
 
-        foreach (Transform child in transform)
-            child.gameObject.SetActive(matched);
+    void EnableChildren()
+    {
+        if (_specificChildren.Length == 0)
+            foreach (Transform child in transform)
+                child.gameObject.SetActive(_matched);
+        else
+            foreach (var child in _specificChildren)
+                child.SetActive(_matched);
     }
 
 #if UNITY_EDITOR
