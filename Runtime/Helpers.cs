@@ -8,7 +8,17 @@ public static class Helpers
         list[Random.Range(0, list.Count)];
 
     public static IReadOnlyList<T> Shuffle_<T>(this IReadOnlyList<T> list) =>
-        list.OrderBy(_ => Random.value).ToArray();
+        (IReadOnlyList<T>)(new List<T>(list).ShuffleInPlace());
+
+    public static IList<T> ShuffleInPlace<T>(this IList<T> list)
+    {
+        // https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle#The_modern_algorithm
+        for (var i = list.Count - 1; i > 0; --i) {
+            var j = Random.Range(0, i + 1);
+            (list[i], list[j]) = (list[j], list[i]);
+        }
+        return list;
+    }
 
     const string _clonedGameObjectSuffix = "(Clone)";
     /// <summary>
