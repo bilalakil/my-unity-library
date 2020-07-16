@@ -7,6 +7,9 @@ public static class Helpers
     public static T PickRandom<T>(this IReadOnlyList<T> list) =>
         list[Random.Range(0, list.Count)];
 
+    public static IReadOnlyList<T> PickRandom<T>(this IReadOnlyList<T> list, int n) =>
+        list.Shuffle_().Take(n).ToArray();
+
     public static IReadOnlyList<T> Shuffle_<T>(this IReadOnlyList<T> list) =>
         (IReadOnlyList<T>)(new List<T>(list).ShuffleInPlace());
 
@@ -33,5 +36,11 @@ public static class Helpers
             : name;
 
         return choppedName;
+    }
+
+    public static void DestroyChildren(this Transform tfm)
+    {
+        for (var i = tfm.childCount - 1; i != -1; --i)
+            GameObject.Destroy(tfm.GetChild(i).gameObject);
     }
 }
