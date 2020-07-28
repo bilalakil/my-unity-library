@@ -18,6 +18,8 @@ public class MyLibraryConfig : ScriptableObject
     public string musicMasterVolumeKey = "MasterVolume";
     public AudioMixer soundMixer;
     public string soundMasterVolumeKey = "MasterVolume";
+    public string simpleRelayHTTPSURL; // https://abc.def.ghi.com:1234/Prod"
+    public string simpleRelayWSSURL; // "wss://abc.def.ghi.com:1234/Prod"
 
     public TestConfig testConfig;
 
