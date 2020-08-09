@@ -20,23 +20,35 @@ using UnityEngine.Assertions;
  * (meaning music will stop and only start again if there is an autoPlay list).
  */
 
+[AddComponentMenu("")] // To prevent it from showing up in the Add Component list
 [DefaultExecutionOrder(-1000)]
 public class MusicController : MonoBehaviour
 {
-    static MusicController _i;
+    static MusicController _i
+    {
+        get
+        {
+            if (!_haveInstantiated)
+            {
+                var obj = new GameObject("MusicController");
+                DontDestroyOnLoad(obj);
+                obj.AddComponent<MusicController>();
+            }
+            return __i;
+        }
+    }
+    static MusicController __i;
+    static bool _haveInstantiated;
 
     public static MusicPlaylist ActivePlaylist => _i._activePlaylist;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     static void Init()
     {
-        var obj = new GameObject();
-        obj.name = "MusicController";
-        DontDestroyOnLoad(obj);
-        obj.AddComponent<MusicController>();
-
         var defaultMusic = Resources.Load<GameObject>("DefaultMusic");
-        if (defaultMusic != null) DontDestroyOnLoad(Instantiate(defaultMusic));
+        if (defaultMusic == null) return;
+        
+        DontDestroyOnLoad(Instantiate(defaultMusic));
     }
 
     /// <summary>
@@ -46,7 +58,7 @@ public class MusicController : MonoBehaviour
     /// <summary>
     /// Immediately stops playing if it was the active playlist.
     /// </summary>
-    public static void DeregisterPlaylist(MusicPlaylist playlist) => _i.DeregisterPlaylist_(playlist);
+    public static void DeregisterPlaylist(MusicPlaylist playlist) => _i?.DeregisterPlaylist_(playlist);
     /// <summary>See "Playlist naming convention" in this file's notes.</summary>
     public static void PlayPlaylist(string name) => PlayPlaylist(_i._playlists[name]);
     public static void PlayPlaylist(MusicPlaylist playlist) => _i.PlayPlaylist_(playlist);
@@ -62,8 +74,19 @@ public class MusicController : MonoBehaviour
 
     void OnEnable()
     {
-        _i = this;
+        if (__i != null)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        __i = this;
+        _haveInstantiated = true;
         _playlists = new Dictionary<string, MusicPlaylist>();
+    }
+    void OnDisable()
+    {
+        if (__i == this) __i = null;
     }
     
     void RegisterPlaylist_(MusicPlaylist playlist)

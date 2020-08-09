@@ -19,31 +19,42 @@ using UnityEngine.Assertions;
  * it will be automatically initialised and made `DontDestroyOnLoad`.
  */
 
+[AddComponentMenu("")] // To prevent it from showing up in the Add Component list
 [DefaultExecutionOrder(-1000)]
 public class SoundController : MonoBehaviour
 {
     static char[] _digits
         = new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
 
-    static SoundController _i;
+    static SoundController _i
+    {
+        get
+        {
+            if (!_haveInstantiated)
+            {
+                var obj = new GameObject("SoundController");
+                DontDestroyOnLoad(obj);
+                obj.AddComponent<SoundController>();
+            }
+            return __i;
+        }
+    }
+    static SoundController __i;
+    static bool _haveInstantiated;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     static void Init()
     {
-        var obj = new GameObject();
-        obj.name = "SoundController";
-        DontDestroyOnLoad(obj);
-        obj.AddComponent<SoundController>();
-
         var defaultSounds = Resources.Load<GameObject>("DefaultSounds");
-        if (defaultSounds != null)
-            DontDestroyOnLoad(Instantiate(defaultSounds));
+        if (defaultSounds == null) return;
+
+        DontDestroyOnLoad(Instantiate(defaultSounds));
     }
 
     public static void RegisterSound(AudioSource sound)
         => _i.RegisterSound_(sound);
     public static void DeregisterSound(AudioSource sound)
-        => _i.DeregisterSound_(sound);
+        => _i?.DeregisterSound_(sound);
     /// <summary>See "Sound naming convention" in this file's notes.</summary>
     public static AudioSource Get(string name) => _i.Get_(name);
     /// <summary>See "Sound naming convention" in this file's notes.</summary>
@@ -53,8 +64,20 @@ public class SoundController : MonoBehaviour
 
     void OnEnable()
     {
-        _i = this;
+        if (__i != null)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        __i = this;
+        _haveInstantiated = true;
+
         _sounds = new Dictionary<string, List<AudioSource>>();
+    }
+    void OnDisable()
+    {
+        if (__i == this) __i = null;
     }
     
     void RegisterSound_(AudioSource sound)

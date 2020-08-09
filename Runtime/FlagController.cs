@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+[AddComponentMenu("")] // To prevent it from showing up in the Add Component list
 [DefaultExecutionOrder(-1000)]
 public class FlagController : MonoBehaviour
 {
@@ -10,23 +11,29 @@ public class FlagController : MonoBehaviour
 
     static int[] FPS_STEPS = { 30, 60, 90, 120 };
 
-    public static FlagController i
+    static FlagController _i
     {
         get
         {
-            if (_i == null)
+            if (!_haveInstantiated)
             {
                 var obj = new GameObject("FlagController");
                 obj.AddComponent<FlagController>();
                 DontDestroyOnLoad(obj);
             }
-
-            return _i;
+            return __i;
         }
     }
-    static FlagController _i;
+    static FlagController __i;
+    static bool _haveInstantiated;
 
-    public static bool exists => _i != null;
+    public static void Add(string flag) => _i.Add_(flag);
+    public static void Remove(string flag) => _i?.Remove_(flag);
+    public static bool Check(string flag) => _i.Check_(flag);
+    public static void RegisterListener(string flag, Action cb) =>
+        _i.RegisterListener_(flag, cb);
+    public static void DeregisterListener(string flag, Action cb) =>
+        _i?.DeregisterListener_(flag, cb);
 
     [NonSerialized] HashSet<string> _flags = new HashSet<string>();
     [NonSerialized] Dictionary<string, HashSet<Action>> _listeners =
@@ -41,13 +48,22 @@ public class FlagController : MonoBehaviour
 
     void OnEnable()
     {
-        _i = this;
+        if (__i != null)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        __i = this;
+        _haveInstantiated = true;
         PrepareStaticFlags();
     }
+    void OnDisable()
+    {
+        if (__i == this) __i = null;
+    }
 
-    void OnDisable() => _i = null;
-
-    public void Add(string flag)
+    void Add_(string flag)
     {
         if (_flags.Contains(flag)) return;
         _flags.Add(flag);
@@ -55,7 +71,7 @@ public class FlagController : MonoBehaviour
         ExecuteListeners(flag);
     }
 
-    public void Remove(string flag)
+    void Remove_(string flag)
     {
         if (!_flags.Contains(flag)) return;
         _flags.Remove(flag);
@@ -63,9 +79,9 @@ public class FlagController : MonoBehaviour
         ExecuteListeners(flag);
     }
 
-    public bool Check(string flag) => _flags.Contains(flag);
+    bool Check_(string flag) => _flags.Contains(flag);
 
-    public void RegisterListener(string flag, Action cb)
+    void RegisterListener_(string flag, Action cb)
     {
         if (!_listeners.ContainsKey(flag))
             _listeners[flag] = new HashSet<Action>();
@@ -76,7 +92,7 @@ public class FlagController : MonoBehaviour
         _listeners[flag].Add(cb);
     }
 
-    public void DeregisterListener(string flag, Action cb)
+    void DeregisterListener_(string flag, Action cb)
     {
         if (!_listeners.ContainsKey(flag) || !_listeners[flag].Contains(cb))
             throw new NotSupportedException();
@@ -109,42 +125,42 @@ public class FlagController : MonoBehaviour
         switch (platform)
         {
             case RuntimePlatform.Android:
-                Add("platform_android");
-                Add("platform_phone");
+                Add_("platform_android");
+                Add_("platform_phone");
                 break;
             case RuntimePlatform.IPhonePlayer:
-                Add("platform_ios");
-                Add("platform_phone");
+                Add_("platform_ios");
+                Add_("platform_phone");
                 break;
             case RuntimePlatform.LinuxEditor:
-                Add("platform_linux");
-                Add("platform_pc");
-                Add("platform_editor");
+                Add_("platform_linux");
+                Add_("platform_pc");
+                Add_("platform_editor");
                 break;
             case RuntimePlatform.LinuxPlayer:
-                Add("platform_linux");
-                Add("platform_pc");
+                Add_("platform_linux");
+                Add_("platform_pc");
                 break;
             case RuntimePlatform.OSXEditor:
-                Add("platform_macos");
-                Add("platform_pc");
-                Add("platform_editor");
+                Add_("platform_macos");
+                Add_("platform_pc");
+                Add_("platform_editor");
                 break;
             case RuntimePlatform.OSXPlayer:
-                Add("platform_macos");
-                Add("platform_pc");
+                Add_("platform_macos");
+                Add_("platform_pc");
                 break;
             case RuntimePlatform.WebGLPlayer:
-                Add("platform_web");
+                Add_("platform_web");
                 break;
             case RuntimePlatform.WindowsEditor:
-                Add("platform_windows");
-                Add("platform_pc");
-                Add("platform_editor");
+                Add_("platform_windows");
+                Add_("platform_pc");
+                Add_("platform_editor");
                 break;
             case RuntimePlatform.WindowsPlayer:
-                Add("platform_windows");
-                Add("platform_pc");
+                Add_("platform_windows");
+                Add_("platform_pc");
                 break;
             default:
                 Debug.LogWarning("Unsupported platform");
@@ -177,7 +193,7 @@ public class FlagController : MonoBehaviour
             return;
         }
 
-        foreach (var step in FPS_STEPS) Add(string.Format(
+        foreach (var step in FPS_STEPS) Add_(string.Format(
             "fps_{0}{1}",
             recordedFPS > step ? ">" : "<",
             step

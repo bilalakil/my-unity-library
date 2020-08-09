@@ -45,15 +45,15 @@ public class EnableChildrenByFlags : MonoBehaviour
                 _curFlags.Add(flag);
         
         foreach (var flag in _curFlags)
-            FlagController.i.RegisterListener(flag, ReviewFlags);
+            FlagController.RegisterListener(flag, ReviewFlags);
     }
 
     void DeregisterListeners()
     {
-        if (!FlagController.exists || _curFlags.Count == 0) return;
+        if (_curFlags.Count == 0) return;
 
         foreach (var flag in _curFlags)
-            FlagController.i.DeregisterListener(flag, ReviewFlags);
+            FlagController.DeregisterListener(flag, ReviewFlags);
 
         _curFlags.Clear();
     }
@@ -70,8 +70,8 @@ public class EnableChildrenByFlags : MonoBehaviour
             foreach (var flag in cond.flags)
             {
                 localMatch = isAnd
-                    ? localMatch && FlagController.i.Check(flag)
-                    : localMatch || FlagController.i.Check(flag);
+                    ? localMatch && FlagController.Check(flag)
+                    : localMatch || FlagController.Check(flag);
                 
                 if (isAnd != localMatch) break;
             }

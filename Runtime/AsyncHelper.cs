@@ -41,6 +41,7 @@ public class Async
             cb?.Invoke();
             return null;
         });
+        MaybeTakeStep();
         return this;
     }
 
@@ -130,19 +131,37 @@ public class Async
 [AddComponentMenu("")] // To prevent it from showing up in the Add Component list
 [DefaultExecutionOrder(-10000)]
 /// <summary>Exists to be the default host for coroutines started from the `Async` class.</summary>
-public class AsyncHelper : MonoBehaviour
+internal class AsyncHelper : MonoBehaviour
 {
-    public static AsyncHelper I { get; private set; }
-
-    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
-    static void Init()
+    internal static AsyncHelper I
     {
-        var o = new GameObject();
-        o.name = "AsyncHelper";
-        o.AddComponent<AsyncHelper>();
-        DontDestroyOnLoad(o);
+        get
+        {
+            if (!_haveInstantiated)
+            {
+                var obj = new GameObject("AsyncHelper");
+                obj.AddComponent<AsyncHelper>();
+                DontDestroyOnLoad(obj);
+            }
+            return _i;
+        }
     }
+    static AsyncHelper _i;
+    static bool _haveInstantiated;
 
-    void OnEnable() => I = this;
+    void OnEnable()
+    {
+        if (_i != null)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        _i = this;
+        _haveInstantiated = true;
+    }
+    void OnDisable()
+    {
+        if (_i == this) _i = null;
+    }
 }
-
