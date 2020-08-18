@@ -70,7 +70,6 @@ public class MusicController : MonoBehaviour
     IReadOnlyList<AudioSource> _tracks;
     int _trackIndex;
     AudioSource _cur;
-    Coroutine _playCoroutine;
 
     void OnEnable()
     {
@@ -84,6 +83,25 @@ public class MusicController : MonoBehaviour
         _haveInstantiated = true;
         _playlists = new Dictionary<string, MusicPlaylist>();
     }
+
+    void Update()
+    {
+        if (_activePlaylist == null || _tracks.Count == 0)
+        {
+            if (_cur != null) StopCur();
+            return;
+        }
+
+        var shouldPlayNext = _cur == null || !_cur.isPlaying;
+        if (!shouldPlayNext) return;
+
+        _trackIndex = (_trackIndex + 1) % _tracks.Count;
+
+        _cur = _tracks[_trackIndex];
+        if (_cur.isActiveAndEnabled) _cur.Play();
+        else _cur = null;
+    }
+    
     void OnDisable()
     {
         if (__i == this) __i = null;
@@ -120,32 +138,18 @@ public class MusicController : MonoBehaviour
         _tracks = _activePlaylist.shuffle
             ? _activePlaylist.tracks.Shuffle_()
             : _activePlaylist.tracks;
-
-        PlayNextSong();
     }
 
     void Stop_()
     {
-        if (_playCoroutine != null) StopCoroutine(_playCoroutine);
-
-        if (_cur != null) _cur.Stop();
-
+        StopCur();
         _activePlaylist = null;
     }
 
-    void PlayNextSong() => _playCoroutine = StartCoroutine(PlayNextSongCo());
-
-    IEnumerator PlayNextSongCo()
+    void StopCur()
     {
-        if (_cur != null) _cur.Stop();
-
-        _trackIndex = (_trackIndex + 1) % _tracks.Count;
-
-        _cur = _tracks[_trackIndex];
-        _cur.Play();
-
-        while (_cur.isPlaying) yield return null;
-
-        PlayNextSong();
+        if (_cur == null) return;
+        _cur.Stop();
+        _cur = null;
     }
 }
