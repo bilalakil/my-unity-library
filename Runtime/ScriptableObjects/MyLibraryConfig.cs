@@ -1,5 +1,6 @@
 ﻿using System;
 using UnityEngine;
+using UnityEngine.Audio;
 
 /**
  * ## Notes
@@ -13,6 +14,11 @@ using UnityEngine;
 [CreateAssetMenu(menuName = "MyLibrary/MyLibraryConfig", fileName = "MyLibraryConfig")]
 public class MyLibraryConfig : ScriptableObject
 {
+    public AudioMixer musicMixer;
+    public string musicMasterVolumeKey = "MasterVolume";
+    public AudioMixer soundMixer;
+    public string soundMasterVolumeKey = "MasterVolume";
+
     public TestConfig testConfig;
 
     [Serializable]

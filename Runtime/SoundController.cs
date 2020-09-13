@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.Assertions;
+using UnityEngine.Audio;
 
 /**
  * ## Notes
@@ -23,8 +25,11 @@ using UnityEngine.Assertions;
 [DefaultExecutionOrder(-1000)]
 public class SoundController : MonoBehaviour
 {
-    static char[] _digits
-        = new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
+    const string PP_VOLUME_ON = "_ml_soundOn";
+    const float VOLUME_ON = 0f;
+    const float VOLUME_OFF = -100f;
+
+    static Regex _nameEndPattern = new Regex("[-_]*[0-9]+$");
 
     static SoundController _i
     {
@@ -41,6 +46,20 @@ public class SoundController : MonoBehaviour
     }
     static SoundController __i;
     static bool _haveInstantiated;
+
+    public static bool VolumeOn
+    {
+        get => _i._volumeOn;
+        set
+        {
+            Assert.IsTrue(_i._mixer != null);
+            
+            _i._volumeOn = value;
+            PlayerPrefs.SetInt(PP_VOLUME_ON, value ? 1 : 0);
+
+            _i._mixer.SetFloat(_i._volumeKey, value ? VOLUME_ON : VOLUME_OFF);
+        }
+    }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     static void Init()
@@ -61,6 +80,9 @@ public class SoundController : MonoBehaviour
     public static void Play(string name) => _i.Get_(name).Play();
 
     Dictionary<string, List<AudioSource>> _sounds;
+    AudioMixer _mixer;
+    string _volumeKey;
+    bool _volumeOn;
 
     void OnEnable()
     {
@@ -75,6 +97,18 @@ public class SoundController : MonoBehaviour
 
         _sounds = new Dictionary<string, List<AudioSource>>();
     }
+
+    void Start()
+    {
+        var config = Resources.Load<MyLibraryConfig>("MyLibraryConfig");
+        if (config == null) return;
+
+        _mixer = config.soundMixer;
+        _volumeKey = config.soundMasterVolumeKey;
+
+        VolumeOn = PlayerPrefs.GetInt(PP_VOLUME_ON, 1) == 1;
+    }
+
     void OnDisable()
     {
         if (__i == this) __i = null;
@@ -110,7 +144,7 @@ public class SoundController : MonoBehaviour
     string GetName(AudioSource sound)
     {
         var baseName = sound.gameObject.StandardName();
-        var minusNumbers = baseName.TrimEnd(_digits);
+        var minusNumbers = _nameEndPattern.Replace(baseName, "");
 
         return minusNumbers;
     }
