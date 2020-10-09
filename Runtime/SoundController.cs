@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.Assertions;
@@ -137,8 +138,10 @@ public class SoundController : MonoBehaviour
 
     AudioSource Get_(string name)
     {
-        Assert.IsTrue(_sounds.ContainsKey(name));
-        return _sounds[name][Random.Range(0, _sounds[name].Count)];
+        if (!_sounds.ContainsKey(name))
+            throw new InvalidOperationException("Attempted to play non-existant sound: " + name);
+
+        return _sounds[name][UnityEngine.Random.Range(0, _sounds[name].Count)];
     }
 
     string GetName(AudioSource sound)

@@ -6,6 +6,10 @@ using UnityEngine;
  *
  * #### Adding/removing sounds during play
  * Adding/removing child objects will trigger recomputation of the list of sounds.
+ *
+ * #### Enabled/disabled state of children
+ * The enabled/disabled state of child game objects or their AudioSource components
+ * is completely ignored by this script - they might be played anyway.
  */
 
 public class SoundLibrary : MonoBehaviour
