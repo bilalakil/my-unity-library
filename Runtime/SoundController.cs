@@ -107,7 +107,8 @@ public class SoundController : MonoBehaviour
         _mixer = config.soundMixer;
         _volumeKey = config.soundMasterVolumeKey;
 
-        VolumeOn = PlayerPrefs.GetInt(PP_VOLUME_ON, 1) == 1;
+        if (_i._mixer != null)
+            VolumeOn = PlayerPrefs.GetInt(PP_VOLUME_ON, 1) == 1;
     }
 
     void OnDisable()

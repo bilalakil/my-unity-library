@@ -1,9 +1,9 @@
 {
-  "version": "0.1.3",
+  "version": "0.1.4",
   "name": "me.bilalakil.my-unity-library",
   "displayName": "My Library",
   "type": "library",
-  "description": "Suite of Unity extensions built up over time. There is currently no documentation - you'll need to manually inspect the source code.",
+  "description": "Suite of Unity extensions built up over time. There is currently no dedicated documentation - you'll need to manually inspect the source code.",
   "author": {
     "name": "Bilal Akil",
     "email": "mail@bilalakil.me",
