@@ -6,7 +6,6 @@ using UnityEngine;
 [DefaultExecutionOrder(-1000)]
 public class FlagController : MonoBehaviour
 {
-    const string PP_FPS_CHECK = "fpsCheck";
     const float FPS_CHECK_DURATION_SECS = 5f;
 
     static int[] FPS_STEPS = { 30, 60, 90, 120 };
@@ -45,6 +44,8 @@ public class FlagController : MonoBehaviour
     void Awake() =>
         _config = Resources.Load<MyLibraryConfig>("MyLibraryConfig");
 #endif
+
+    float _sessionFPS;
 
     void OnEnable()
     {
@@ -170,23 +171,20 @@ public class FlagController : MonoBehaviour
 
     void PrepareFPSFlags()
     {
-        var recordedFPS = PlayerPrefs.GetFloat(PP_FPS_CHECK, -1f);
-
 #if UNITY_EDITOR
         if (_config?.testConfig.useFlagFPSOverride ?? false)
-            recordedFPS = _config.testConfig.flagFPSOverride;
+            _sessionFPS = _config.testConfig.flagFPSOverride;
 #endif
 
-        if (recordedFPS == -1f)
+        if (_sessionFPS == 0f)
         {
             var startingFrameCount = Time.frameCount;
 
             new Async(this)
-                .Wait(FPS_CHECK_DURATION_SECS)
+                .Wait(FPS_CHECK_DURATION_SECS, true)
                 .Then(() => {
                     var curFrameCount = Time.frameCount;
-                    var avg = curFrameCount / FPS_CHECK_DURATION_SECS;
-                    PlayerPrefs.SetFloat(PP_FPS_CHECK, avg);
+                    _sessionFPS = curFrameCount / FPS_CHECK_DURATION_SECS;
                     PrepareFPSFlags();
                 });
             
@@ -195,7 +193,7 @@ public class FlagController : MonoBehaviour
 
         foreach (var step in FPS_STEPS) Add_(string.Format(
             "fps_{0}{1}",
-            recordedFPS > step ? ">" : "<",
+            _sessionFPS > step ? ">" : "<",
             step
         ));
     }

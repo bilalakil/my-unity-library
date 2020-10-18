@@ -77,16 +77,17 @@ public class Async
 
     // #### Wait
     
-    public Async Wait(float secs)
+    public Async Wait(float secs, bool realtime = false)
     {
-        _steps.Add(() => WaitCoroutine(secs));
+        _steps.Add(() => WaitCoroutine(secs, realtime));
         MaybeTakeStep();
         return this;
     }
 
-    IEnumerator WaitCoroutine(float secs)
+    IEnumerator WaitCoroutine(float secs, bool realtime)
     {
-        yield return new WaitForSeconds(secs);
+        if (realtime) yield return new WaitForSecondsRealtime(secs);
+        else yield return new WaitForSeconds(secs);
         FinishedStep();
     }
 
