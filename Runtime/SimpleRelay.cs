@@ -1,4 +1,4 @@
-// Compatible with SimpleRelay v0.x.x
+// Compatible with SimpleRelay v1.x.x
 
 #define SR_DEBUG
 //#define SR_DEBUG_INFO
@@ -24,10 +24,12 @@ public class SimpleRelay : MonoBehaviour
     const int WS_CONNECTION_RETRIES = 2;
     
     static readonly HttpClient HttpClient;
+    static readonly TimeSpan NotifyDisconnectPeriod = TimeSpan.FromSeconds(1f);
     static readonly TimeSpan WSTimeout = TimeSpan.FromSeconds(3f);
     static readonly Regex OutgoingMessageStripPattern = new Regex("\\s*,?\\s*\"pinned\":\\s*false\\s*");
 
     static readonly HashSet<string> _liveSRIDs = new HashSet<string>();
+    static readonly HashSet<string> _waitingForNotifyDisconnect = new HashSet<string>();
     
     static void IDebugInfoS(string msg)
     {
@@ -111,9 +113,11 @@ public class SimpleRelay : MonoBehaviour
     float _lastHeartbeatAt;
     int _heartbeatsPending;
     bool _waitingToDisconnect;
+    bool _notifyDisconnection;
 
     [NonSerialized] IWebSocket _ws;
-    [NonSerialized] CancellationTokenSource _cancellation;
+    [NonSerialized] CancellationTokenSource _wsCancellation;
+    [NonSerialized] CancellationTokenSource _objCancellation;
 
     void IDebugError(string msg)
     {
@@ -133,9 +137,12 @@ public class SimpleRelay : MonoBehaviour
 
     void OnEnable()
     {
+        if (_objCancellation == null)
+            _objCancellation = new CancellationTokenSource();
+
         if (_config.initd)
         {
-            IDebugInfo("Re-enabled - reconnecting");
+            IDebugInfo("Re-enabled");
             Reconnect();
 
             _liveSRIDs.Add(_config.localId);
@@ -151,21 +158,22 @@ public class SimpleRelay : MonoBehaviour
             _state.ConnStatus == SRState.ConnectionStatus.Closed
         ) return;
 
-        IDebugInfo("Disabled - pausing");
+        IDebugInfo("Disabled");
         Pause();
     }
 
     void OnDestroy()
     {
+        _objCancellation.Cancel(false);
+
+        IDebugInfo("Destroyed");
+
         if (_state.ConnStatus == SRState.ConnectionStatus.Closed) return;
 
         var shouldClearConfig = !_config.isPrivate && _state.CurStage == SRState.Stage.WaitingForMoreMembers;
-
-        IDebugInfo("Destroyed - tearing down" + (shouldClearConfig ? " and clearing config" : ""));
         Teardown(
             SRState.CloseReason.ConnectionDied,
-            shouldClearConfig,
-            false
+            shouldClearConfig
         );
     }
 
@@ -177,8 +185,6 @@ public class SimpleRelay : MonoBehaviour
         var json = JsonUtility.ToJson(msg);
         var strippedJson = OutgoingMessageStripPattern.Replace(json, "");
 
-        Debug.Log(strippedJson);
-
         _ws.Send(strippedJson, WSTimeout);
     }
 
@@ -188,6 +194,8 @@ public class SimpleRelay : MonoBehaviour
             _state.ConnStatus == SRState.ConnectionStatus.Connecting ||
             _state.ConnStatus == SRState.ConnectionStatus.Closed
         ) return;
+
+        IDebugInfo("Reconnecting");
 
         KillWS();
         RunWS();
@@ -204,6 +212,8 @@ public class SimpleRelay : MonoBehaviour
             _state.ConnStatus == SRState.ConnectionStatus.Closed
         ) return;
 
+        IDebugInfo("Pausing");
+
         KillWS();
 
         _state.connStatus = SRState.ConnectionStatus.Paused;
@@ -212,6 +222,8 @@ public class SimpleRelay : MonoBehaviour
 
     public void Disconnect(bool endSession)
     {
+        if (_state.CurStage == SRState.Stage.ConnectionClosed) return;
+
         if (endSession && _state.CurStage == SRState.Stage.SessionInProgress)
         {
             IDebugInfo("End session requested. Will try to send end session instruction");
@@ -224,8 +236,11 @@ public class SimpleRelay : MonoBehaviour
         }
 
         if (
-            _state.ConnStatus == SRState.ConnectionStatus.Connecting ||
-            _state.ConnStatus == SRState.ConnectionStatus.Reconnecting
+            _ws != null
+            && (
+                _state.ConnStatus == SRState.ConnectionStatus.Connecting ||
+                _state.ConnStatus == SRState.ConnectionStatus.Reconnecting
+            )
         )
         {
             IDebugInfo("Disconnection requested. Waiting until connected for clean disconnection");
@@ -234,13 +249,12 @@ public class SimpleRelay : MonoBehaviour
 
             _liveSRIDs.Remove(_config.localId);
             ClearConfig();
-            _config.localId = "";
 
             return;
         }
 
-        IDebugInfo("Disconnection request, tearing down and clearing config");
-        Teardown(SRState.CloseReason.DisconnectRequested, true, true);
+        IDebugInfo("Disconnection request. Acting immediately");
+        Teardown(SRState.CloseReason.DisconnectRequested);
     }
 
     SimpleRelay Init(Config config)
@@ -259,7 +273,7 @@ public class SimpleRelay : MonoBehaviour
         _config = config;
         _liveSRIDs.Add(_config.localId);
 
-        if (!string.IsNullOrEmpty(_config.memberId))
+        if (_config.sessionStarted)
             _state.stage = SRState.Stage.SessionInProgress;
         
         RunWS();
@@ -274,8 +288,8 @@ public class SimpleRelay : MonoBehaviour
         
         while (true)
         {
-            _cancellation = new CancellationTokenSource();
-            var localCancellation = _cancellation;
+            _wsCancellation = new CancellationTokenSource();
+            var localCancellation = _wsCancellation;
 
             IDebugInfo("Testing web connectivity via HTTPS ping");
             while (true)
@@ -295,10 +309,10 @@ public class SimpleRelay : MonoBehaviour
                 )
                 {
                     IDebugInfo(
-                        "Failed to ping, aborting initial connection. Ping URL: " + 
+                        "Failed to ping during initial connection. Aborting. Ping URL: " + 
                         GetPingURL()
                     );
-                    Teardown(SRState.CloseReason.InitialConnectionFailed, true, true);
+                    Teardown(SRState.CloseReason.InitialConnectionFailed);
                     return;
                 }
 
@@ -310,6 +324,16 @@ public class SimpleRelay : MonoBehaviour
                 if (localCancellation.IsCancellationRequested) return;
             }
             IDebugInfo("Ping successful");
+
+            if (_waitingForNotifyDisconnect.Contains(_config.localId))
+                IDebugInfo("Waiting for previous web socket to notify disconnect");
+            while (_waitingForNotifyDisconnect.Contains(_config.localId))
+            {
+                await Task.Run(
+                    () => localCancellation.Token.WaitHandle.WaitOne(100)
+                );
+                if (localCancellation.IsCancellationRequested) return;
+            }
 
             var url = GetConnectionURL(_config);
             _ws = WebSocketFactory.Get(url, localCancellation.Token);
@@ -324,23 +348,24 @@ public class SimpleRelay : MonoBehaviour
             {
                 if (wsConnectionAttemptNum != WS_CONNECTION_RETRIES)
                 {
+                    IDebugInfo("WS failed to connect. Retrying");
+
                     ++wsConnectionAttemptNum;
-                    IDebugInfo("WS failed to connect - retrying");
+                    SetNotifyDisconnection();
+
                     continue;
                 }
 
                 _ws = null;
 
                 IDebugInfo(
-                    "WS failed to connect - tearing down and clearing config. Connection URL: " +
+                    "WS failed to connect. Connection URL: " +
                     GetConnectionURL(_config)
                 );
                 Teardown(
                     _state.ConnStatus == SRState.ConnectionStatus.Reconnecting
                         ? SRState.CloseReason.ConnectionDied
-                        : SRState.CloseReason.InitialConnectionFailed,
-                    true,
-                    true
+                        : SRState.CloseReason.InitialConnectionFailed
                 );
                 return;
             }
@@ -348,11 +373,11 @@ public class SimpleRelay : MonoBehaviour
             if (_waitingToDisconnect)
             {
                 IDebugInfo("Disconnecting now that WS is properly connected");
-                Teardown(SRState.CloseReason.DisconnectRequested, false, true);
+                Teardown(SRState.CloseReason.DisconnectRequested);
                 return;
             }
 
-            IDebugInfo("WS successfully connected. Entering message loop, waiting for intro message");
+            IDebugInfo("WS successfully connected. Entering message loop. Waiting for SESSION_START or SESSION_RECONNECT");
             _state.connIsStable = true;
             _state.connStatus = SRState.ConnectionStatus.Connected;
             onStateChanged?.Invoke();
@@ -364,7 +389,7 @@ public class SimpleRelay : MonoBehaviour
             await _ws.ReceiveLoop();
             if (localCancellation.IsCancellationRequested) return;
 
-            IDebugInfo("WS receive loop died, will retry");
+            IDebugInfo("WS receive loop died. Retrying");
 
             _state.connStatus = SRState.ConnectionStatus.Reconnecting;
             onStateChanged?.Invoke();
@@ -380,10 +405,10 @@ public class SimpleRelay : MonoBehaviour
             _ws = null;
         }
 
-        if (_cancellation != null)
+        if (_wsCancellation != null)
         {
-            _cancellation.Cancel(false);
-            _cancellation = null;
+            _wsCancellation.Cancel(false);
+            _wsCancellation = null;
         }
     }
 
@@ -411,7 +436,8 @@ public class SimpleRelay : MonoBehaviour
 
     void RouteMessage(Message message)
     {
-        if (message.type == "CONNECTION_OVERWRITE") HandleConnectionOverwrite();
+        if (message.type == "CONNECTION") HandleConnection(message);
+        else if (message.type == "CONNECTION_OVERWRITE") HandleConnectionOverwrite();
         else if (message.type == "HEARTBEAT") HandleHeartbeat();
         else if (message.type == "INVALID_CONNECTION") HandleInvalidConnection();
         else if (message.type == "MEMBER_DISCONNECT") HandleMemberDisconnect(message);
@@ -424,10 +450,18 @@ public class SimpleRelay : MonoBehaviour
         else IDebugError("Unhandled message type: " + message.type);
     }
 
+    void HandleConnection(Message message)
+    {
+        IDebugInfo("CONNECTION (memberId) received");
+
+        _config.memberId = message.memberId;
+        SaveConfig();
+    }
+
     void HandleConnectionOverwrite()
     {
-        IDebugInfo("CONNECTION_OVERWRITE received - tearing down and clearing config");
-        Teardown(SRState.CloseReason.ConnectionOverwritten, true, true);
+        IDebugInfo("CONNECTION_OVERWRITE received");
+        Teardown(SRState.CloseReason.ConnectionOverwritten);
     }
 
     void HandleHeartbeat()
@@ -443,7 +477,7 @@ public class SimpleRelay : MonoBehaviour
 
     void HandleInvalidConnection()
     {
-        IDebugInfo("INVALID_CONNECTION received - reconnecting");
+        IDebugInfo("INVALID_CONNECTION received");
         Reconnect();
     }
 
@@ -491,8 +525,8 @@ public class SimpleRelay : MonoBehaviour
 
     void HandleSessionEnd()
     {
-        IDebugInfo("SESSION_END received - tearing down and clearing config");
-        Teardown(SRState.CloseReason.SessionEnded, true, true);
+        IDebugInfo("SESSION_END received");
+        Teardown(SRState.CloseReason.SessionEnded);
     }
 
     void HandleSessionReconnect(Message message)
@@ -520,7 +554,7 @@ public class SimpleRelay : MonoBehaviour
         _config.sessionType = message.sessionType;
         _config.sessionId = message.sessionId;
         _config.numMembers = message.numMembers;
-        _config.memberId = message.memberId;
+        _config.sessionStarted = true;
 
         _state.memberNum = message.memberNum;
         _state.ready = true;
@@ -539,24 +573,18 @@ public class SimpleRelay : MonoBehaviour
     {
         var parts = new List<string>();
 
-        var haveID = !string.IsNullOrEmpty(config.sessionId);
-        if (haveID)
-            parts.Add("sessionId=" + WebUtility.UrlEncode(config.sessionId));
-
         if (!string.IsNullOrEmpty(config.memberId))
             parts.Add("memberId=" + WebUtility.UrlEncode(config.memberId));
         else
         {
             if (!string.IsNullOrEmpty(config.sessionType))
                 parts.Add("sessionType=" + WebUtility.UrlEncode(config.sessionType));
-
-            if (!haveID)
-            {
-                if (config.numMembers != 0)
-                    parts.Add("targetNumMembers=" + config.numMembers);
-                if (config.isPrivate)
-                    parts.Add("private=true");
-            }
+            if (config.numMembers != 0)
+                parts.Add("targetNumMembers=" + config.numMembers);
+            if (config.isPrivate)
+                parts.Add("private=true");
+            if (!string.IsNullOrEmpty(config.sessionId))
+                parts.Add("sessionId=" + WebUtility.UrlEncode(config.sessionId));
         }
 
         return _libConfig.simpleRelayWSSURL + "?" + string.Join("&", parts);
@@ -564,14 +592,24 @@ public class SimpleRelay : MonoBehaviour
 
     string GetPingURL() => _libConfig.simpleRelayHTTPSURL + "/ping";
 
+    string GetNotifyDisconnectionURL() => string.Format(
+        "{0}/notifyDisconnect/{1}",
+        _libConfig.simpleRelayHTTPSURL,
+        _config.memberId
+    );
+
     void SaveConfig()
     {
+        if (_waitingToDisconnect) return;
+
         IDebugInfo("Saving config");
         PlayerPrefs.SetString(PPString, JsonUtility.ToJson(_config));
     }
 
-    void Teardown(SRState.CloseReason reason, bool clearConfig, bool selfDestruct)
+    void Teardown(SRState.CloseReason reason, bool clearConfig = true)
     {
+        IDebugInfo("Tearing down");
+
         KillWS();
 
         _liveSRIDs.Remove(_config.localId);
@@ -579,19 +617,32 @@ public class SimpleRelay : MonoBehaviour
         if (clearConfig) ClearConfig();
 
         _state.connStatus = SRState.ConnectionStatus.Closed;
+        _state.stage = SRState.Stage.ConnectionClosed;
         _state.closeStageReason = reason;
         onStateChanged?.Invoke();
 
-        if (selfDestruct) DestroyImmediate(gameObject);
+        if (!string.IsNullOrEmpty(_config.memberId)) SetNotifyDisconnection();
+        else
+        {
+            IDebugInfo("Goodbye");
+            Destroy(gameObject);
+        }
     }
 
-    void ClearConfig() => PlayerPrefs.DeleteKey(PPString);
+    void ClearConfig()
+    {
+        if (string.IsNullOrEmpty(_config.localId)) return;
+
+        IDebugInfo("Clearing config");
+
+        PlayerPrefs.DeleteKey(PPString);
+    }
 
     void TickHeartbeatLoop()
     {
         if (
             _state.ConnStatus != SRState.ConnectionStatus.Connected ||
-            _cancellation.IsCancellationRequested
+            _wsCancellation.IsCancellationRequested
         ) return;
         
         var heartbeatDelay =
@@ -642,7 +693,7 @@ public class SimpleRelay : MonoBehaviour
 
         if (_heartbeatsPending == HEARTBEAT_COUNT_UNTIL_RECONNECT)
         {
-            IDebugInfo("Too many missed heartbeats - reconnecting");
+            IDebugInfo("Too many missed heartbeats");
             Reconnect();
             return;
         }
@@ -657,6 +708,64 @@ public class SimpleRelay : MonoBehaviour
         }
     }
 
+    void SetNotifyDisconnection()
+    {
+        if (string.IsNullOrEmpty(_config.memberId)) return;
+        _notifyDisconnection = true;
+
+        StartNotifyDisconnectionLoop();
+    }
+
+    // This is implemented differently to the heartbeat loop
+    // because we want it to continue even if the game object is disabled
+    async void StartNotifyDisconnectionLoop()
+    {
+        if (_waitingForNotifyDisconnect.Contains(_config.localId)) return;
+        _waitingForNotifyDisconnect.Add(_config.localId);
+
+        while (_notifyDisconnection)
+        {
+            var timeUp = false;
+            var timeUntilNextSend = Task.Run(
+                () => _objCancellation.Token.WaitHandle.WaitOne(
+                    NotifyDisconnectPeriod
+                )
+            ).ContinueWith((_) => timeUp = true);
+
+            await Task.WhenAny(
+                SendNotifyDisconnection(),
+                timeUntilNextSend
+            );
+
+            if (_objCancellation.IsCancellationRequested) break;
+            if (!timeUp) await timeUntilNextSend;
+            if (_objCancellation.IsCancellationRequested) break;
+        }
+
+        _waitingForNotifyDisconnect.Remove(_config.localId);
+    }
+
+    async Task SendNotifyDisconnection()
+    {
+        HttpResponseMessage res = null;
+        try { res = await HttpClient.GetAsync(GetNotifyDisconnectionURL(), _objCancellation.Token); }
+        catch (HttpRequestException) { }
+        catch (TaskCanceledException) { }
+
+        if (_objCancellation.Token.IsCancellationRequested) return;
+        if (res == null || res.StatusCode != HttpStatusCode.OK) return;
+
+        _notifyDisconnection = false;
+    
+        IDebugInfo("Notify disconnect successful");
+
+        if (_state.CurStage == SRState.Stage.ConnectionClosed)
+        {
+            IDebugInfo("Goodbye");
+            Destroy(gameObject);
+        }
+    }
+
     [Serializable]
     struct Config
     {
@@ -667,6 +776,7 @@ public class SimpleRelay : MonoBehaviour
         public bool isPrivate;
         public string sessionId;
         public string memberId;
+        public bool sessionStarted;
         public bool tryingToEndSession;
     }
 
@@ -700,6 +810,9 @@ public class SimpleRelay : MonoBehaviour
 #pragma warning disable CS0649
         public string type;
 
+        // CONNECTION
+        public string memberId;
+
         // MESSAGE, SESSION_RECONNECT
         public int memberNum;
 
@@ -715,7 +828,6 @@ public class SimpleRelay : MonoBehaviour
         // SESSION_START
         public string sessionType;
         public string sessionId;
-        public string memberId;
         public int numMembers;
 #pragma warning restore CS0649
     }
