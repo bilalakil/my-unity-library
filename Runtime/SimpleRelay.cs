@@ -77,6 +77,7 @@ public class SimpleRelay : MonoBehaviour
             sessionType = sessionType,
             numMembers = targetNumMembers,
             isPrivate = true,
+            isHost = true,
             localId = localId
         });
 
@@ -153,10 +154,7 @@ public class SimpleRelay : MonoBehaviour
 
     void OnDisable()
     {
-        if (    
-            _state.ConnStatus == SRState.ConnectionStatus.Paused ||
-            _state.ConnStatus == SRState.ConnectionStatus.Closed
-        ) return;
+        if (_state.ConnStatus == SRState.ConnectionStatus.Disconnected) return;
 
         IDebugInfo("Disabled");
         Pause();
@@ -168,12 +166,13 @@ public class SimpleRelay : MonoBehaviour
 
         IDebugInfo("Destroyed");
 
-        if (_state.ConnStatus == SRState.ConnectionStatus.Closed) return;
+        if (_state.CurStage == SRState.Stage.ConnectionClosed) return;
 
-        var shouldClearConfig = !_config.isPrivate && _state.CurStage == SRState.Stage.WaitingForMoreMembers;
+        var canReconnectLater = _config.isPrivate || _state.CurStage != SRState.Stage.WaitingForMoreMembers;
         Teardown(
-            SRState.CloseReason.ConnectionDied,
-            shouldClearConfig
+            SRState.DisconnectReason.ConnectionDied,
+            true,
+            !canReconnectLater
         );
     }
 
@@ -191,8 +190,11 @@ public class SimpleRelay : MonoBehaviour
     public void Reconnect()
     {
         if (
-            _state.ConnStatus == SRState.ConnectionStatus.Connecting ||
-            _state.ConnStatus == SRState.ConnectionStatus.Closed
+            _state.ConnStatus != SRState.ConnectionStatus.Disconnected ||
+            (
+                _state.DCReason != SRState.DisconnectReason.ConnectionDied &&
+                _state.DCReason != SRState.DisconnectReason.InitialConnectionFailed
+            )
         ) return;
 
         IDebugInfo("Reconnecting");
@@ -201,28 +203,24 @@ public class SimpleRelay : MonoBehaviour
         RunWS();
 
         _state.ready = false;
-        _state.connStatus = SRState.ConnectionStatus.Reconnecting;
+        _state.connStatus = _state.DCReason == SRState.DisconnectReason.InitialConnectionFailed
+            ? SRState.ConnectionStatus.Connecting
+            : SRState.ConnectionStatus.Reconnecting;
         onStateChanged?.Invoke();
     }
 
     public void Pause()
     {
-        if (    
-            _state.ConnStatus == SRState.ConnectionStatus.Paused ||
-            _state.ConnStatus == SRState.ConnectionStatus.Closed
-        ) return;
+        if (_state.ConnStatus == SRState.ConnectionStatus.Disconnected) return;
 
         IDebugInfo("Pausing");
-
-        KillWS();
-
-        _state.connStatus = SRState.ConnectionStatus.Paused;
-        onStateChanged?.Invoke();
+        Teardown(SRState.DisconnectReason.DisconnectRequested, false, false);
     }
 
     public void Disconnect(bool endSession)
     {
-        if (_state.CurStage == SRState.Stage.ConnectionClosed) return;
+        // Still needs to run while ConnectionClosed,
+        // i.e. to specify close reason and fully tear down 
 
         if (endSession && _state.CurStage == SRState.Stage.SessionInProgress)
         {
@@ -254,7 +252,7 @@ public class SimpleRelay : MonoBehaviour
         }
 
         IDebugInfo("Disconnection request. Acting immediately");
-        Teardown(SRState.CloseReason.DisconnectRequested);
+        Teardown(SRState.DisconnectReason.DisconnectRequested);
     }
 
     SimpleRelay Init(Config config)
@@ -273,8 +271,13 @@ public class SimpleRelay : MonoBehaviour
         _config = config;
         _liveSRIDs.Add(_config.localId);
 
+        if (
+            !string.IsNullOrEmpty(_config.sessionId) &&
+            string.IsNullOrEmpty(_config.memberId)
+        ) _state.password = _config.sessionId;
         if (_config.sessionStarted)
             _state.stage = SRState.Stage.SessionInProgress;
+        if (_config.isHost) _state.isHost = true;
         
         RunWS();
         
@@ -288,6 +291,14 @@ public class SimpleRelay : MonoBehaviour
         
         while (true)
         {
+            _state.connStatus =
+                _state.ConnStatus == SRState.ConnectionStatus.Disconnected &&
+                _state.disconnectReason == SRState.DisconnectReason.ConnectionDied
+                    ? SRState.ConnectionStatus.Reconnecting
+                    : SRState.ConnectionStatus.Connecting;
+            onStateChanged?.Invoke();
+
+            _wsCancellation?.Cancel();
             _wsCancellation = new CancellationTokenSource();
             var localCancellation = _wsCancellation;
 
@@ -312,7 +323,7 @@ public class SimpleRelay : MonoBehaviour
                         "Failed to ping during initial connection. Aborting. Ping URL: " + 
                         GetPingURL()
                     );
-                    Teardown(SRState.CloseReason.InitialConnectionFailed);
+                    Teardown(SRState.DisconnectReason.InitialConnectionFailed, false);
                     return;
                 }
 
@@ -364,8 +375,8 @@ public class SimpleRelay : MonoBehaviour
                 );
                 Teardown(
                     _state.ConnStatus == SRState.ConnectionStatus.Reconnecting
-                        ? SRState.CloseReason.ConnectionDied
-                        : SRState.CloseReason.InitialConnectionFailed
+                        ? SRState.DisconnectReason.ConnectionDied
+                        : SRState.DisconnectReason.InitialConnectionFailed
                 );
                 return;
             }
@@ -373,7 +384,7 @@ public class SimpleRelay : MonoBehaviour
             if (_waitingToDisconnect)
             {
                 IDebugInfo("Disconnecting now that WS is properly connected");
-                Teardown(SRState.CloseReason.DisconnectRequested);
+                Teardown(SRState.DisconnectReason.DisconnectRequested);
                 return;
             }
 
@@ -461,7 +472,7 @@ public class SimpleRelay : MonoBehaviour
     void HandleConnectionOverwrite()
     {
         IDebugInfo("CONNECTION_OVERWRITE received");
-        Teardown(SRState.CloseReason.ConnectionOverwritten);
+        Teardown(SRState.DisconnectReason.ConnectionOverwritten);
     }
 
     void HandleHeartbeat()
@@ -526,7 +537,7 @@ public class SimpleRelay : MonoBehaviour
     void HandleSessionEnd()
     {
         IDebugInfo("SESSION_END received");
-        Teardown(SRState.CloseReason.SessionEnded);
+        Teardown(SRState.DisconnectReason.SessionEnded);
     }
 
     void HandleSessionReconnect(Message message)
@@ -579,12 +590,15 @@ public class SimpleRelay : MonoBehaviour
         {
             if (!string.IsNullOrEmpty(config.sessionType))
                 parts.Add("sessionType=" + WebUtility.UrlEncode(config.sessionType));
-            if (config.numMembers != 0)
-                parts.Add("targetNumMembers=" + config.numMembers);
-            if (config.isPrivate)
-                parts.Add("private=true");
+
             if (!string.IsNullOrEmpty(config.sessionId))
                 parts.Add("sessionId=" + WebUtility.UrlEncode(config.sessionId));
+            else {
+                if (config.numMembers != 0)
+                    parts.Add("targetNumMembers=" + config.numMembers);
+                if (config.isPrivate)
+                    parts.Add("private=true");
+            }
         }
 
         return _libConfig.simpleRelayWSSURL + "?" + string.Join("&", parts);
@@ -606,7 +620,7 @@ public class SimpleRelay : MonoBehaviour
         PlayerPrefs.SetString(PPString, JsonUtility.ToJson(_config));
     }
 
-    void Teardown(SRState.CloseReason reason, bool clearConfig = true)
+    void Teardown(SRState.DisconnectReason reason, bool closeConnection = true, bool clearConfig = true)
     {
         IDebugInfo("Tearing down");
 
@@ -614,15 +628,15 @@ public class SimpleRelay : MonoBehaviour
 
         _liveSRIDs.Remove(_config.localId);
 
+        if (closeConnection) _state.stage = SRState.Stage.ConnectionClosed;
         if (clearConfig) ClearConfig();
 
-        _state.connStatus = SRState.ConnectionStatus.Closed;
-        _state.stage = SRState.Stage.ConnectionClosed;
-        _state.closeStageReason = reason;
+        _state.connStatus = SRState.ConnectionStatus.Disconnected;
+        _state.disconnectReason = reason;
         onStateChanged?.Invoke();
 
         if (!string.IsNullOrEmpty(_config.memberId)) SetNotifyDisconnection();
-        else
+        else if (closeConnection)
         {
             IDebugInfo("Goodbye");
             Destroy(gameObject);
@@ -774,6 +788,7 @@ public class SimpleRelay : MonoBehaviour
         public string sessionType;
         public int numMembers;
         public bool isPrivate;
+        public bool isHost;
         public string sessionId;
         public string memberId;
         public bool sessionStarted;
@@ -849,9 +864,11 @@ public class SRState
     public bool ConnIsStable => connIsStable;
     /// <summary>Even when connected, state may be out of date while `!Ready`</summary>
     public bool Ready => ready;
-    public CloseReason CloseStageReason => closeStageReason;
+    /// <summary>Not relevant during `ConnectionStatus.Connecting` or `ConnectionStatus.Connected`</summary>
+    public DisconnectReason DCReason => disconnectReason;
     public int MemberNum => memberNum;
     public IReadOnlyList<bool> MemberPresence => memberPresence;
+    public bool IsHost => isHost;
     public string Password => password == "" ? null : password;
 
     // Odd check is to avoid deserialisation issues,
@@ -865,10 +882,11 @@ public class SRState
         ConnectionStatus.Connecting;
     [SerializeField] internal bool connIsStable = true;
     [SerializeField] internal bool ready;
-    [SerializeField] internal CloseReason closeStageReason;
+    [SerializeField] internal DisconnectReason disconnectReason;
     [SerializeField] internal int memberNum = -1;
     [SerializeField] internal bool[] memberPresence;
     [SerializeField] internal SRMessage pinnedMessage;
+    [SerializeField] internal bool isHost;
     [SerializeField] internal string password;
 
     public enum Stage
@@ -882,12 +900,11 @@ public class SRState
     {
         Connecting,
         Connected,
-        Paused,
         Reconnecting,
-        Closed
+        Disconnected
     }
 
-    public enum CloseReason
+    public enum DisconnectReason
     {
         InitialConnectionFailed,
         SessionEnded,

@@ -92,6 +92,26 @@ public class Async
     }
 
 
+    // #### Next
+    
+    public Async Next(int frames = 1)
+    {
+        _steps.Add(() => NextCoroutine(frames));
+        MaybeTakeStep();
+        return this;
+    }
+
+    IEnumerator NextCoroutine(int frames)
+    {
+        while (frames != 0)
+        {
+            yield return new WaitForEndOfFrame();
+            --frames;
+        }
+        FinishedStep();
+    }
+
+
     // #### Every
     
     public Async Every(float secs, Action cb)
