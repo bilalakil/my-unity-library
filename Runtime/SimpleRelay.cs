@@ -1,4 +1,4 @@
-// Compatible with SimpleRelay v1.x.x
+// Compatible with SimpleRelay >v2.0.0
 
 #define SR_DEBUG
 //#define SR_DEBUG_INFO
@@ -187,9 +187,10 @@ public class SimpleRelay : MonoBehaviour
         _ws.Send(strippedJson, WSTimeout);
     }
 
-    public void Reconnect()
+    public void Reconnect(bool force = false)
     {
         if (
+            !force &&
             _state.ConnStatus != SRState.ConnectionStatus.Disconnected ||
             (
                 _state.DCReason != SRState.DisconnectReason.ConnectionDied &&
@@ -367,7 +368,19 @@ public class SimpleRelay : MonoBehaviour
                     continue;
                 }
 
-                _ws = null;
+                if (
+                    _state.CurStage == SRState.Stage.WaitingForMoreMembers &&
+                    !string.IsNullOrEmpty(_config.memberId)
+                )
+                {
+                    IDebugInfo("WS failed to connect. Clearing member ID and trying again");
+
+                    _config.memberId = null;
+                    SaveConfig();
+
+                    Reconnect(true);
+                    return;
+                }
 
                 IDebugInfo(
                     "WS failed to connect. Connection URL: " +
@@ -388,7 +401,7 @@ public class SimpleRelay : MonoBehaviour
                 return;
             }
 
-            IDebugInfo("WS successfully connected. Entering message loop. Waiting for SESSION_START or SESSION_RECONNECT");
+            IDebugInfo("WS successfully connected. Entering message loop. Waiting for SESSION_CONNECT");
             _state.connIsStable = true;
             _state.connStatus = SRState.ConnectionStatus.Connected;
             onStateChanged?.Invoke();
@@ -409,6 +422,8 @@ public class SimpleRelay : MonoBehaviour
 
     void KillWS()
     {
+        _state.connStatus = SRState.ConnectionStatus.Disconnected;
+
         if (_ws != null)
         {
             _ws.onMessageReceived -= HandleWSMessageReceived;
@@ -456,8 +471,7 @@ public class SimpleRelay : MonoBehaviour
         else if (message.type == "MESSAGE") HandleMessage(message);
         else if (message.type == "PRIVATE_SESSION_PENDING") HandlePrivateSessionPending(message);
         else if (message.type == "SESSION_END") HandleSessionEnd();
-        else if (message.type == "SESSION_RECONNECT") HandleSessionReconnect(message);
-        else if (message.type == "SESSION_START") HandleSessionStart(message);
+        else if (message.type == "SESSION_CONNECT") HandleSessionConnect(message);
         else IDebugError("Unhandled message type: " + message.type);
     }
 
@@ -540,34 +554,18 @@ public class SimpleRelay : MonoBehaviour
         Teardown(SRState.DisconnectReason.SessionEnded);
     }
 
-    void HandleSessionReconnect(Message message)
+    void HandleSessionConnect(Message message)
     {
         // Could be received multiple times due to heartbeat
         if (_state.Ready) return;
 
-        _state.memberNum = message.memberNum;
-        _state.memberPresence = message.members;
-        _state.pinnedMessage = message.pinnedMessage;
-        _state.ready = true;
-        _state.stage = SRState.Stage.SessionInProgress;
-
-        if (_state.PinnedMessage != null)
-            _lastMessageTime = _state.PinnedMessage.Time;
-
-        onStateChanged?.Invoke();
-    }
-
-    void HandleSessionStart(Message message)
-    {
-        // Could be received multiple times due to heartbeat
-        if (_state.Ready) return;
-
-        _config.sessionType = message.sessionType;
         _config.sessionId = message.sessionId;
-        _config.numMembers = message.numMembers;
+        _config.numMembers = message.memberPresence.Length;
         _config.sessionStarted = true;
 
         _state.memberNum = message.memberNum;
+        _state.memberPresence = message.memberPresence;
+        _state.pinnedMessage = message.pinnedMessage;
         _state.ready = true;
         _state.stage = SRState.Stage.SessionInProgress;
         _state.password = null;
@@ -575,6 +573,12 @@ public class SimpleRelay : MonoBehaviour
         _state.memberPresence = new bool[_config.numMembers];
         for (var i = 0; i != _config.numMembers; ++i)
             _state.memberPresence[i] = true;
+        
+        if (_state.PinnedMessage != null)
+            _lastMessageTime = Math.Max(
+                _lastMessageTime,
+                _state.PinnedMessage.Time
+            );
 
         SaveConfig();
         onStateChanged?.Invoke();
@@ -584,6 +588,10 @@ public class SimpleRelay : MonoBehaviour
     {
         var parts = new List<string>();
 
+        var haveSessionId = !string.IsNullOrEmpty(config.sessionId);
+        if (haveSessionId)
+            parts.Add("sessionId=" + WebUtility.UrlEncode(config.sessionId));
+
         if (!string.IsNullOrEmpty(config.memberId))
             parts.Add("memberId=" + WebUtility.UrlEncode(config.memberId));
         else
@@ -591,9 +599,8 @@ public class SimpleRelay : MonoBehaviour
             if (!string.IsNullOrEmpty(config.sessionType))
                 parts.Add("sessionType=" + WebUtility.UrlEncode(config.sessionType));
 
-            if (!string.IsNullOrEmpty(config.sessionId))
-                parts.Add("sessionId=" + WebUtility.UrlEncode(config.sessionId));
-            else {
+            if (!haveSessionId)
+            {
                 if (config.numMembers != 0)
                     parts.Add("targetNumMembers=" + config.numMembers);
                 if (config.isPrivate)
@@ -678,11 +685,13 @@ public class SimpleRelay : MonoBehaviour
         var waitingFor = new List<string>();
         if (!_state.ready)
         {
+            if (string.IsNullOrEmpty(_config.memberId))
+                waitingFor.Add("\"CONNECTION\"");
+
             if (IsWaitingForPassword)
                 waitingFor.Add("\"PRIVATE_SESSION_PENDING\"");
 
-            if (string.IsNullOrEmpty(_config.memberId)) waitingFor.Add("\"SESSION_START\"");
-            else waitingFor.Add("\"SESSION_RECONNECT\"");
+            waitingFor.Add("\"SESSION_CONNECT\"");
         }
 
         _ws.Send(
@@ -708,7 +717,7 @@ public class SimpleRelay : MonoBehaviour
         if (_heartbeatsPending == HEARTBEAT_COUNT_UNTIL_RECONNECT)
         {
             IDebugInfo("Too many missed heartbeats");
-            Reconnect();
+            Reconnect(true);
             return;
         }
 
@@ -828,7 +837,7 @@ public class SimpleRelay : MonoBehaviour
         // CONNECTION
         public string memberId;
 
-        // MESSAGE, SESSION_RECONNECT
+        // MESSAGE, SESSION_CONNECT
         public int memberNum;
 
         // MESSAGE
@@ -836,14 +845,11 @@ public class SimpleRelay : MonoBehaviour
         public bool pinned;
         public long time;
 
-        // SESSION_RECONNECT
-        public bool[] members;
-        public SRMessage pinnedMessage;
-
-        // SESSION_START
+        // SESSION_CONNECT
         public string sessionType;
         public string sessionId;
-        public int numMembers;
+        public bool[] memberPresence;
+        public SRMessage pinnedMessage;
 #pragma warning restore CS0649
     }
 
