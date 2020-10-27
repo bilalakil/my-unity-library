@@ -449,10 +449,12 @@ public class SimpleRelay : MonoBehaviour
         try
         {
             messages = JsonUtility.FromJson<Messages>("{\"messages\":"+json+"}");
+            if (messages.messages.Count == 0)
+                throw new Exception("JsonUtility silently failed to parse message");
         }
         catch (Exception e)
         {
-            IDebugError("Failed to parse raw message: " + e.ToString());
+            IDebugError("Failed to parse raw message: " + e.ToString() + "\n\n" + json);
             return;
         }
 
