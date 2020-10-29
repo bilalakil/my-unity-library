@@ -29,7 +29,7 @@ public class SimpleRelay : MonoBehaviour
     static readonly Regex OutgoingMessageStripPattern = new Regex("\\s*,?\\s*\"pinned\":\\s*false\\s*");
 
     static readonly HashSet<string> _liveSRIDs = new HashSet<string>();
-    static readonly HashSet<string> _waitingForNotifyDisconnect = new HashSet<string>();
+    static readonly HashSet<SimpleRelay> _waitingForNotifyDisconnect = new HashSet<SimpleRelay>();
     
     static void IDebugInfoS(string msg)
     {
@@ -44,7 +44,7 @@ public class SimpleRelay : MonoBehaviour
         HttpClient.Timeout = TimeSpan.FromSeconds(PING_FREQUENCY);
     }
 
-    public static bool CanTryReconnecting(string localId = DEFAULT_LOCAL_ID) =>
+    public static bool CanTryRejoining(string localId = DEFAULT_LOCAL_ID) =>
         !string.IsNullOrEmpty(PlayerPrefs.GetString(PPForLocalId(localId)));
     
     public static SimpleRelay Rejoin(string localId = DEFAULT_LOCAL_ID)
@@ -227,9 +227,9 @@ public class SimpleRelay : MonoBehaviour
         {
             IDebugInfo("End session requested. Will try to send end session instruction");
 
+            SetWaitingToDisconnect();
+
             _config.tryingToEndSession = true;
-            SaveConfig();
-            
             SendHeartbeat();
             return;
         }
@@ -244,11 +244,7 @@ public class SimpleRelay : MonoBehaviour
         {
             IDebugInfo("Disconnection requested. Waiting until connected for clean disconnection");
 
-            _waitingToDisconnect = true;
-
-            _liveSRIDs.Remove(_config.localId);
-            ClearConfig();
-
+            SetWaitingToDisconnect();
             return;
         }
 
@@ -337,12 +333,12 @@ public class SimpleRelay : MonoBehaviour
             }
             IDebugInfo("Ping successful");
 
-            if (_waitingForNotifyDisconnect.Contains(_config.localId))
+            if (_waitingForNotifyDisconnect.Count != 0)
                 IDebugInfo("Waiting for previous web socket to notify disconnect");
-            while (_waitingForNotifyDisconnect.Contains(_config.localId))
+            while (_waitingForNotifyDisconnect.Count != 0)
             {
                 await Task.Run(
-                    () => localCancellation.Token.WaitHandle.WaitOne(100)
+                    () => localCancellation.Token.WaitHandle.WaitOne(10)
                 );
                 if (localCancellation.IsCancellationRequested) return;
             }
@@ -394,17 +390,24 @@ public class SimpleRelay : MonoBehaviour
                 return;
             }
 
-            if (_waitingToDisconnect)
+            if (_waitingToDisconnect && !_config.tryingToEndSession)
             {
                 IDebugInfo("Disconnecting now that WS is properly connected");
                 Teardown(SRState.DisconnectReason.DisconnectRequested);
                 return;
             }
 
-            IDebugInfo("WS successfully connected. Entering message loop. Waiting for SESSION_CONNECT");
+            if (_config.tryingToEndSession)
+                IDebugInfo("WS successfully connected. Trying to send END_SESSION");
+            else
+                IDebugInfo("WS successfully connected. Entering message loop. Waiting for SESSION_CONNECT");
+
             _state.connIsStable = true;
             _state.connStatus = SRState.ConnectionStatus.Connected;
             onStateChanged?.Invoke();
+
+            if (_config.tryingToEndSession)
+                SendHeartbeat();
             
             wsConnectionAttemptNum = 0;
             _lastHeartbeatAt = Time.unscaledTime;
@@ -464,15 +467,18 @@ public class SimpleRelay : MonoBehaviour
 
     void RouteMessage(Message message)
     {
-        if (message.type == "CONNECTION") HandleConnection(message);
-        else if (message.type == "CONNECTION_OVERWRITE") HandleConnectionOverwrite();
-        else if (message.type == "HEARTBEAT") HandleHeartbeat();
+        if (message.type == "CONNECTION_OVERWRITE") HandleConnectionOverwrite();
         else if (message.type == "INVALID_CONNECTION") HandleInvalidConnection();
+        else if (message.type == "SESSION_END") HandleSessionEnd();
+
+        if (_config.tryingToEndSession) return;
+
+        if (message.type == "CONNECTION") HandleConnection(message);
+        else if (message.type == "HEARTBEAT") HandleHeartbeat();
         else if (message.type == "MEMBER_DISCONNECT") HandleMemberDisconnect(message);
         else if (message.type == "MEMBER_RECONNECT") HandleMemberReconnect(message);
         else if (message.type == "MESSAGE") HandleMessage(message);
         else if (message.type == "PRIVATE_SESSION_PENDING") HandlePrivateSessionPending(message);
-        else if (message.type == "SESSION_END") HandleSessionEnd();
         else if (message.type == "SESSION_CONNECT") HandleSessionConnect(message);
         else IDebugError("Unhandled message type: " + message.type);
     }
@@ -745,8 +751,8 @@ public class SimpleRelay : MonoBehaviour
     // because we want it to continue even if the game object is disabled
     async void StartNotifyDisconnectionLoop()
     {
-        if (_waitingForNotifyDisconnect.Contains(_config.localId)) return;
-        _waitingForNotifyDisconnect.Add(_config.localId);
+        if (_waitingForNotifyDisconnect.Contains(this)) return;
+        _waitingForNotifyDisconnect.Add(this);
 
         while (_notifyDisconnection)
         {
@@ -767,7 +773,7 @@ public class SimpleRelay : MonoBehaviour
             if (_objCancellation.IsCancellationRequested) break;
         }
 
-        _waitingForNotifyDisconnect.Remove(_config.localId);
+        _waitingForNotifyDisconnect.Remove(this);
     }
 
     async Task SendNotifyDisconnection()
@@ -789,6 +795,15 @@ public class SimpleRelay : MonoBehaviour
             IDebugInfo("Goodbye");
             Destroy(gameObject);
         }
+    }
+
+    void SetWaitingToDisconnect()
+    {
+        _waitingToDisconnect = true;
+
+        _liveSRIDs.Remove(_config.localId);
+        ClearConfig();
+        _config.localId = "";
     }
 
     [Serializable]

@@ -1,5 +1,5 @@
 {
-  "version": "0.2.4",
+  "version": "0.2.5",
   "name": "me.bilalakil.my-unity-library",
   "displayName": "My Library",
   "type": "library",
@@ -8,12 +8,5 @@
     "name": "Bilal Akil",
     "email": "mail@bilalakil.me",
     "url": "https://bilalakil.me"
-  },
-  "samples": [
-    {
-      "displayName": "WebGLTemplates",
-      "description": "Contains templates for: Kongregate. Import, then move the WebGLTemplates folder into Assets/, and optionally delete the generated Samples folders.",
-      "path": "Samples~/WebGLTemplates"
-    }
-  ]
+  }
 }
