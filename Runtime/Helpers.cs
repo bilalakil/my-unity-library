@@ -4,12 +4,18 @@ using UnityEngine;
 
 public static class Helpers
 {
+    public static T PickRandom<T>(this IEnumerable<T> enumerable) =>
+        enumerable.ToArray().PickRandom();
     public static T PickRandom<T>(this IReadOnlyList<T> list) =>
         list[Random.Range(0, list.Count)];
 
+    public static IReadOnlyList<T> PickRandom<T>(this IEnumerable<T> enumerable, int n) =>
+        enumerable.ToArray().PickRandom(n);
     public static IReadOnlyList<T> PickRandom<T>(this IReadOnlyList<T> list, int n) =>
         list.Shuffle_().Take(n).ToArray();
 
+    public static IReadOnlyList<T> Shuffle_<T>(this IEnumerable<T> enumerable) =>
+        enumerable.ToArray().Shuffle_();
     public static IReadOnlyList<T> Shuffle_<T>(this IReadOnlyList<T> list) =>
         (IReadOnlyList<T>)(new List<T>(list).ShuffleInPlace());
 
