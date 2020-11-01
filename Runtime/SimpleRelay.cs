@@ -467,25 +467,40 @@ public class SimpleRelay : MonoBehaviour
 
     void RouteMessage(Message message)
     {
-        var handled = true;
+        MsgType msgType;
+        try
+        {
+            msgType = (MsgType)Enum.Parse(typeof(MsgType), message.type);
+        }
+        catch (ArgumentException)
+        {
+            IDebugError("Unhandled message type: " + message.type);
+            return;
+        }
 
-        if (message.type == "CONNECTION_OVERWRITE") HandleConnectionOverwrite();
-        else if (message.type == "INVALID_CONNECTION") HandleInvalidConnection();
-        else if (message.type == "SESSION_END") HandleSessionEnd();
+        if (msgType == MsgType.CONNECTION_OVERWRITE)
+            HandleConnectionOverwrite();
+        else if (msgType == MsgType.INVALID_CONNECTION)
+            HandleInvalidConnection();
+        else if (msgType == MsgType.SESSION_END)
+            HandleSessionEnd();
         else if (!_config.tryingToEndSession)
         {
-          if (message.type == "CONNECTION") HandleConnection(message);
-          else if (message.type == "HEARTBEAT") HandleHeartbeat();
-          else if (message.type == "MEMBER_DISCONNECT") HandleMemberDisconnect(message);
-          else if (message.type == "MEMBER_RECONNECT") HandleMemberReconnect(message);
-          else if (message.type == "MESSAGE") HandleMessage(message);
-          else if (message.type == "PRIVATE_SESSION_PENDING") HandlePrivateSessionPending(message);
-          else if (message.type == "SESSION_CONNECT") HandleSessionConnect(message);
-          else handled = false;
+            if (msgType == MsgType.CONNECTION)
+                HandleConnection(message);
+            else if (msgType == MsgType.HEARTBEAT)
+                HandleHeartbeat();
+            else if (msgType == MsgType.MEMBER_DISCONNECT)
+                HandleMemberDisconnect(message);
+            else if (msgType == MsgType.MEMBER_RECONNECT)
+                HandleMemberReconnect(message);
+            else if (msgType == MsgType.MESSAGE)
+                HandleMessage(message);
+            else if (msgType == MsgType.PRIVATE_SESSION_PENDING)
+                HandlePrivateSessionPending(message);
+            else if (msgType == MsgType.SESSION_CONNECT)
+                HandleSessionConnect(message);
         }
-        else handled = false;
-
-        if (!handled) IDebugError("Unhandled message type: " + message.type);
     }
 
     void HandleConnection(Message message)
@@ -809,6 +824,20 @@ public class SimpleRelay : MonoBehaviour
         _liveSRIDs.Remove(_config.localId);
         ClearConfig();
         _config.localId = "";
+    }
+
+    enum MsgType
+    {
+        CONNECTION,
+        CONNECTION_OVERWRITE,
+        HEARTBEAT,
+        INVALID_CONNECTION,
+        MEMBER_DISCONNECT,
+        MEMBER_RECONNECT,
+        MESSAGE,
+        PRIVATE_SESSION_PENDING,
+        SESSION_CONNECT,
+        SESSION_END
     }
 
     [Serializable]
