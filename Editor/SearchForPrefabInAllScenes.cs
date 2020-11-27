@@ -40,7 +40,7 @@ public class SearchForPrefabInAllScenes : EditorWindow
                 {
                     if (sceneHasMatch) break;
 
-                    foreach (var tfm in rootObj.GetComponentsInChildren<Transform>())
+                    foreach (var tfm in rootObj.GetComponentsInChildren<Transform>(true))
                     {
                         if (PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(tfm.gameObject) == _prefabToFind)
                         {

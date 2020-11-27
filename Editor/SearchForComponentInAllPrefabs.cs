@@ -29,7 +29,7 @@ public class SearchForComponentInAllPrefabs : EditorWindow
                 var path = AssetDatabase.GUIDToAssetPath(guid);
                 var obj = AssetDatabase.LoadAssetAtPath<GameObject>(path);
 
-                if (obj?.GetComponentInChildren(_script.GetClass()) == null)
+                if (obj?.GetComponentInChildren(_script.GetClass(), true) == null)
                     continue;
                 
                 prefabsWithMatch.Add(obj);
