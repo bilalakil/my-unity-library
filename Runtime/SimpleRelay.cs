@@ -25,7 +25,7 @@ public class SimpleRelay : MonoBehaviour
     
     static readonly HttpClient HttpClient;
     static readonly TimeSpan NotifyDisconnectPeriod = TimeSpan.FromSeconds(1f);
-    static readonly TimeSpan WSTimeout = TimeSpan.FromSeconds(3f);
+    static readonly TimeSpan WSTimeout = TimeSpan.FromSeconds(10f);
     static readonly Regex OutgoingMessageStripPattern = new Regex("\\s*,?\\s*\"pinned\":\\s*false\\s*");
 
     static readonly HashSet<string> _liveSRIDs = new HashSet<string>();
@@ -154,7 +154,8 @@ public class SimpleRelay : MonoBehaviour
 
     void OnDisable()
     {
-        if (_state.ConnStatus == SRState.ConnectionStatus.Disconnected) return;
+        if (_state.ConnStatus == SRState.ConnectionStatus.Disconnected)
+            return;
 
         IDebugInfo("Disabled");
         Pause();
@@ -166,7 +167,8 @@ public class SimpleRelay : MonoBehaviour
 
         IDebugInfo("Destroyed");
 
-        if (_state.CurStage == SRState.Stage.ConnectionClosed) return;
+        if (_state.CurStage == SRState.Stage.ConnectionClosed)
+            return;
 
         var canReconnectLater = _config.isPrivate || _state.CurStage != SRState.Stage.WaitingForMoreMembers;
         Teardown(
@@ -178,13 +180,22 @@ public class SimpleRelay : MonoBehaviour
 
     public void Send(string payload, bool pinned = false)
     {
-        if (_state.ConnStatus != SRState.ConnectionStatus.Connected) return;
+        if (_state.ConnStatus != SRState.ConnectionStatus.Connected)
+            return;
 
         var msg = new OutgoingMessage { payload = payload, pinned = pinned };
         var json = JsonUtility.ToJson(msg);
         var strippedJson = OutgoingMessageStripPattern.Replace(json, "");
 
         _ws.Send(strippedJson, WSTimeout);
+    }
+
+    public void ClearSendQueue()
+    {
+        if (_state.ConnStatus != SRState.ConnectionStatus.Connected)
+            return;
+
+        _ws.ClearSendQueue();
     }
 
     public void Reconnect(bool force = false)
@@ -212,7 +223,8 @@ public class SimpleRelay : MonoBehaviour
 
     public void Pause()
     {
-        if (_state.ConnStatus == SRState.ConnectionStatus.Disconnected) return;
+        if (_state.ConnStatus == SRState.ConnectionStatus.Disconnected)
+            return;
 
         IDebugInfo("Pausing");
         Teardown(SRState.DisconnectReason.DisconnectRequested, false, false);
@@ -307,9 +319,11 @@ public class SimpleRelay : MonoBehaviour
                 catch (HttpRequestException) { }
                 catch (TaskCanceledException) { }
 
-                if (localCancellation.IsCancellationRequested) return;
+                if (localCancellation.IsCancellationRequested)
+                    return;
 
-                if (res != null && res.StatusCode == HttpStatusCode.OK) break;
+                if (res != null && res.StatusCode == HttpStatusCode.OK)
+                    break;
 
                 if (
                     _state.CurStage == SRState.Stage.WaitingForMoreMembers &&
@@ -329,7 +343,8 @@ public class SimpleRelay : MonoBehaviour
                         HttpClient.Timeout
                     )
                 );
-                if (localCancellation.IsCancellationRequested) return;
+                if (localCancellation.IsCancellationRequested)
+                    return;
             }
             IDebugInfo("Ping successful");
 
@@ -340,7 +355,8 @@ public class SimpleRelay : MonoBehaviour
                 await Task.Run(
                     () => localCancellation.Token.WaitHandle.WaitOne(10)
                 );
-                if (localCancellation.IsCancellationRequested) return;
+                if (localCancellation.IsCancellationRequested)
+                    return;
             }
 
             var url = GetConnectionURL(_config);
@@ -350,7 +366,8 @@ public class SimpleRelay : MonoBehaviour
             IDebugInfo("WS attempting connection to: " + url);
 
             await _ws.Connect(WSTimeout);
-            if (localCancellation.IsCancellationRequested) return;
+            if (localCancellation.IsCancellationRequested)
+                return;
 
             if (!_ws.IsConnected)
             {
@@ -414,7 +431,8 @@ public class SimpleRelay : MonoBehaviour
             _heartbeatsPending = 0;
 
             await _ws.ReceiveLoop();
-            if (localCancellation.IsCancellationRequested) return;
+            if (localCancellation.IsCancellationRequested)
+                return;
 
             IDebugInfo("WS receive loop died. Retrying");
 
@@ -566,7 +584,8 @@ public class SimpleRelay : MonoBehaviour
     void HandlePrivateSessionPending(Message message)
     {
         // Could be received multiple times due to heartbeat
-        if (_state.Ready) return;
+        if (_state.Ready)
+            return;
 
         _config.sessionId = message.sessionId;
         
@@ -585,7 +604,8 @@ public class SimpleRelay : MonoBehaviour
     void HandleSessionConnect(Message message)
     {
         // Could be received multiple times due to heartbeat
-        if (_state.Ready) return;
+        if (_state.Ready)
+            return;
 
         _config.sessionId = message.sessionId;
         _config.numMembers = message.memberPresence.Length;
@@ -649,7 +669,8 @@ public class SimpleRelay : MonoBehaviour
 
     void SaveConfig()
     {
-        if (_waitingToDisconnect) return;
+        if (_waitingToDisconnect)
+            return;
 
         IDebugInfo("Saving config");
         PlayerPrefs.SetString(PPString, JsonUtility.ToJson(_config));
@@ -680,7 +701,8 @@ public class SimpleRelay : MonoBehaviour
 
     void ClearConfig()
     {
-        if (string.IsNullOrEmpty(_config.localId)) return;
+        if (string.IsNullOrEmpty(_config.localId))
+            return;
 
         IDebugInfo("Clearing config");
 
@@ -701,14 +723,16 @@ public class SimpleRelay : MonoBehaviour
                 ? HEARTBEAT_PERIOD_UNSTABLE
                 : HEARTBEAT_PERIOD_STABLE;
             
-        if (Time.unscaledTime < _lastHeartbeatAt + heartbeatDelay) return;
+        if (Time.unscaledTime < _lastHeartbeatAt + heartbeatDelay)
+            return;
 
         SendHeartbeat();
     }
 
     void SendHeartbeat()
     {
-        if (_state.ConnStatus != SRState.ConnectionStatus.Connected) return;
+        if (_state.ConnStatus != SRState.ConnectionStatus.Connected)
+            return;
 
         var waitingFor = new List<string>();
         if (!_state.ready)
@@ -761,7 +785,8 @@ public class SimpleRelay : MonoBehaviour
 
     void SetNotifyDisconnection()
     {
-        if (string.IsNullOrEmpty(_config.memberId)) return;
+        if (string.IsNullOrEmpty(_config.memberId))
+            return;
         _notifyDisconnection = true;
 
         StartNotifyDisconnectionLoop();
@@ -771,7 +796,8 @@ public class SimpleRelay : MonoBehaviour
     // because we want it to continue even if the game object is disabled
     async void StartNotifyDisconnectionLoop()
     {
-        if (_waitingForNotifyDisconnect.Contains(this)) return;
+        if (_waitingForNotifyDisconnect.Contains(this))
+            return;
         _waitingForNotifyDisconnect.Add(this);
 
         while (_notifyDisconnection)
@@ -788,9 +814,12 @@ public class SimpleRelay : MonoBehaviour
                 timeUntilNextSend
             );
 
-            if (_objCancellation.IsCancellationRequested) break;
-            if (!timeUp) await timeUntilNextSend;
-            if (_objCancellation.IsCancellationRequested) break;
+            if (_objCancellation.IsCancellationRequested)
+                break;
+            if (!timeUp)
+                await timeUntilNextSend;
+            if (_objCancellation.IsCancellationRequested)
+                break;
         }
 
         _waitingForNotifyDisconnect.Remove(this);
@@ -803,8 +832,10 @@ public class SimpleRelay : MonoBehaviour
         catch (HttpRequestException) { }
         catch (TaskCanceledException) { }
 
-        if (_objCancellation.Token.IsCancellationRequested) return;
-        if (res == null || res.StatusCode != HttpStatusCode.OK) return;
+        if (_objCancellation.Token.IsCancellationRequested)
+            return;
+        if (res == null || res.StatusCode != HttpStatusCode.OK)
+            return;
 
         _notifyDisconnection = false;
     

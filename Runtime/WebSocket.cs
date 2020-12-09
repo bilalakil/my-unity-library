@@ -22,6 +22,8 @@ public class WebSocket : IWebSocket
     public Task ReceiveLoop() => throw new NotImplementedException();
 
     public void Send(string msg, TimeSpan timeout) => throw new NotImplementedException();
+
+    public void ClearSendQueue() => throw new NotImplementedException();
     
     public void Dispose() => throw new NotImplementedException();
 }
@@ -111,6 +113,8 @@ public class WebSocket : IWebSocket, IDisposable
         if (!_sendingMessages) RunSendLoop();
     }
 
+    public void ClearSendQueue() => _messages.Clear();
+
     public void Dispose()
     {
         IDebugInfo("Dispose");
@@ -182,4 +186,5 @@ public interface IWebSocket : IDisposable
     Task Connect(TimeSpan timeout);
     Task ReceiveLoop();
     void Send(string msg, TimeSpan timeout);
+    void ClearSendQueue();
 }
