@@ -15,10 +15,10 @@ using UnityEngine;
 public class SimpleRelay : MonoBehaviour
 {
     const string DEFAULT_LOCAL_ID = "1";
-    const float HEARTBEAT_PERIOD_STABLE = 10f;
-    const float HEARTBEAT_PERIOD_UNSTABLE = 2f;
-    const int HEARTBEAT_COUNT_UNTIL_UNSTABLE = 3;
-    const int HEARTBEAT_COUNT_UNTIL_RECONNECT = 6;
+    const float HEARTBEAT_PERIOD_STABLE = 7f;
+    const float HEARTBEAT_PERIOD_UNSTABLE = 1.5f;
+    const int HEARTBEAT_COUNT_UNTIL_UNSTABLE = 2;
+    const int HEARTBEAT_COUNT_UNTIL_RECONNECT = 5;
     const float PING_FREQUENCY = 3f;
     const string PP_SAVED_CONFIG_TEMPLATE = "SimpleRelay_SavedConfig_{0}";
     const int WS_CONNECTION_RETRIES = 2;
@@ -44,26 +44,15 @@ public class SimpleRelay : MonoBehaviour
         HttpClient.Timeout = TimeSpan.FromSeconds(PING_FREQUENCY);
     }
 
-    public static bool CanTryRejoining(string localId = DEFAULT_LOCAL_ID) =>
-        !string.IsNullOrEmpty(PlayerPrefs.GetString(PPForLocalId(localId)));
-    
-    public static SimpleRelay Rejoin(string localId = DEFAULT_LOCAL_ID)
+    public static bool CanTryRejoining(string sessionType, string localId = DEFAULT_LOCAL_ID)
     {
-        var ppKey = PPForLocalId(localId);
-        var json = PlayerPrefs.GetString(ppKey);
-        IDebugInfoS("Loading config: " + json);
-
-        Config config;
-        try { config = JsonUtility.FromJson<Config>(json); }
-        catch (Exception e)
-        {
-            IDebugInfoS("Failed to load config, clearing it: " + e.ToString());
-            PlayerPrefs.DeleteKey(ppKey);
-            throw e;
-        }
-
-        return Spawn().Init(config);
+        var config = TryLoadConfig(localId);
+        return config.HasValue &&
+            config.Value.sessionType == sessionType;
     }
+    
+    public static SimpleRelay Rejoin(string localId = DEFAULT_LOCAL_ID) =>
+        Spawn().Init(TryLoadConfig(localId).Value);
 
     public static SimpleRelay JoinRandom(string sessionType, int targetNumMembers, string localId = DEFAULT_LOCAL_ID) =>
         Spawn().Init(new Config {
@@ -95,6 +84,27 @@ public class SimpleRelay : MonoBehaviour
         var simpleRelay = obj.AddComponent<SimpleRelay>();
         DontDestroyOnLoad(obj);
         return simpleRelay;
+    }
+
+    static Config? TryLoadConfig(string localId)
+    {
+        var ppKey = PPForLocalId(localId);
+        if (!PlayerPrefs.HasKey(ppKey))
+            return null;
+
+        var json = PlayerPrefs.GetString(ppKey);
+        IDebugInfoS("Loading config: " + json);
+
+        Config? config = null;
+        try { config = JsonUtility.FromJson<Config>(json); }
+        catch (Exception e)
+        {
+            IDebugInfoS("Failed to load config, clearing it: " + e.ToString());
+            PlayerPrefs.DeleteKey(ppKey);
+            throw e;
+        }
+
+        return config;
     }
 
     static string PPForLocalId(string localId) => string.Format(PP_SAVED_CONFIG_TEMPLATE, localId);
@@ -212,13 +222,14 @@ public class SimpleRelay : MonoBehaviour
         IDebugInfo("Reconnecting");
 
         KillWS();
-        RunWS();
 
+        if (_state.memberNum != -1)
+            _state.memberPresence[_state.memberNum] = false;
         _state.ready = false;
-        _state.connStatus = _state.DCReason == SRState.DisconnectReason.InitialConnectionFailed
-            ? SRState.ConnectionStatus.Connecting
-            : SRState.ConnectionStatus.Reconnecting;
-        onStateChanged?.Invoke();
+        _state.disconnectReason = SRState.DisconnectReason.ConnectionDied;
+        _state.connStatus = SRState.ConnectionStatus.Disconnected;
+
+        RunWS();
     }
 
     public void Pause()
@@ -434,10 +445,10 @@ public class SimpleRelay : MonoBehaviour
             if (localCancellation.IsCancellationRequested)
                 return;
 
-            IDebugInfo("WS receive loop died. Retrying");
+            IDebugInfo("WS receive loop died. Reconnecting");
 
-            _state.connStatus = SRState.ConnectionStatus.Reconnecting;
-            onStateChanged?.Invoke();
+            Reconnect();
+            return;
         }
     }
 
