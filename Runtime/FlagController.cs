@@ -189,7 +189,7 @@ public class FlagController : MonoBehaviour
             var startingFrameCount = Time.frameCount;
 
             new Async(this)
-                .Wait(FPS_CHECK_DURATION_SECS, true)
+                .Wait(FPS_CHECK_DURATION_SECS, TimeMode.Unscaled)
                 .Then(() => {
                     var curFrameCount = Time.frameCount;
                     _sessionFPS = curFrameCount / FPS_CHECK_DURATION_SECS;

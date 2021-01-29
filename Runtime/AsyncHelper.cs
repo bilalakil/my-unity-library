@@ -48,23 +48,42 @@ public class Async
 
     // #### Lerp
     
-    public Async Lerp(float from, float to, float over, Action<float> step)
+    public Async Lerp(
+        float from,
+        float to,
+        float over,
+        Action<float> step,
+        TimeMode timeMode = TimeMode.Realtime
+    )
     {
-        _steps.Add(() => LerpCoroutine(from, to, over, step));
+        _steps.Add(() => LerpCoroutine(from, to, over, step, timeMode));
         MaybeTakeStep();
         return this;
     }
-    public Async Lerp(float over, Action<float> step) => Lerp(0, 1, over, step);
+    public Async Lerp(
+        float over,
+        Action<float> step,
+        TimeMode timeMode = TimeMode.Realtime
+    ) => Lerp(0, 1, over, step, timeMode);
 
-    IEnumerator LerpCoroutine(float from, float to, float over, Action<float> cb)
+    IEnumerator LerpCoroutine(
+        float from,
+        float to,
+        float over,
+        Action<float> cb,
+        TimeMode timeMode
+    )
     {
-        var d = 0f;
+        var cumulative = 0f;
         var change = to - from;
 
-        while (d < over)
+        while (cumulative < over)
         {
-            d = Mathf.Min(d + Time.deltaTime, over);
-            var val = from + change * (d / over);
+            var delta = timeMode == TimeMode.Realtime
+                ? Time.deltaTime
+                : Time.unscaledDeltaTime;
+            cumulative = Mathf.Min(cumulative + delta, over);
+            var val = from + change * (cumulative / over);
             cb?.Invoke(val);
 
             yield return null;
@@ -77,17 +96,19 @@ public class Async
 
     // #### Wait
     
-    public Async Wait(float secs, bool realtime = false)
+    public Async Wait(float secs, TimeMode timeMode = TimeMode.Realtime)
     {
-        _steps.Add(() => WaitCoroutine(secs, realtime));
+        _steps.Add(() => WaitCoroutine(secs, timeMode));
         MaybeTakeStep();
         return this;
     }
 
-    IEnumerator WaitCoroutine(float secs, bool realtime)
+    IEnumerator WaitCoroutine(float secs, TimeMode timeMode)
     {
-        if (realtime) yield return new WaitForSecondsRealtime(secs);
-        else yield return new WaitForSeconds(secs);
+        if (timeMode == TimeMode.Realtime)
+            yield return new WaitForSecondsRealtime(secs);
+        else
+            yield return new WaitForSeconds(secs);
         FinishedStep();
     }
 
@@ -193,4 +214,10 @@ internal class AsyncHelper : MonoBehaviour
         if (_iBacking == this)
             _iBacking = null;
     }
+}
+
+public enum TimeMode
+{
+    Realtime,
+    Unscaled
 }
