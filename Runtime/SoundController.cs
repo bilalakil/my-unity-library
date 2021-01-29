@@ -42,10 +42,10 @@ public class SoundController : MonoBehaviour
                 DontDestroyOnLoad(obj);
                 obj.AddComponent<SoundController>();
             }
-            return __i;
+            return _iBacking;
         }
     }
-    static SoundController __i;
+    static SoundController _iBacking;
     static bool _haveInstantiated;
 
     public static bool VolumeOn
@@ -62,9 +62,12 @@ public class SoundController : MonoBehaviour
         }
     }
 
-    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void Init()
     {
+        _iBacking = null;
+        _haveInstantiated = false;
+
         var defaultSounds = Resources.Load<GameObject>("DefaultSounds");
         if (defaultSounds == null) return;
 
@@ -87,13 +90,13 @@ public class SoundController : MonoBehaviour
 
     void OnEnable()
     {
-        if (__i != null)
+        if (_iBacking != null)
         {
             Destroy(gameObject);
             return;
         }
 
-        __i = this;
+        _iBacking = this;
         _haveInstantiated = true;
 
         _sounds = new Dictionary<string, List<AudioSource>>();
@@ -113,7 +116,8 @@ public class SoundController : MonoBehaviour
 
     void OnDisable()
     {
-        if (__i == this) __i = null;
+        if (_iBacking == this)
+            _iBacking = null;
     }
     
     void RegisterSound_(AudioSource sound)

@@ -20,11 +20,18 @@ public class FlagController : MonoBehaviour
                 obj.AddComponent<FlagController>();
                 DontDestroyOnLoad(obj);
             }
-            return __i;
+            return _iBacking;
         }
     }
-    static FlagController __i;
+    static FlagController _iBacking;
     static bool _haveInstantiated;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void Init()
+    {
+        _iBacking = null;
+        _haveInstantiated = false;
+    }
 
     public static void Add(string flag) => _i.Add_(flag);
     public static void Remove(string flag) => _i?.Remove_(flag);
@@ -49,19 +56,20 @@ public class FlagController : MonoBehaviour
 
     void OnEnable()
     {
-        if (__i != null)
+        if (_iBacking != null)
         {
             Destroy(gameObject);
             return;
         }
 
-        __i = this;
+        _iBacking = this;
         _haveInstantiated = true;
         PrepareStaticFlags();
     }
     void OnDisable()
     {
-        if (__i == this) __i = null;
+        if (_iBacking == this)
+            _iBacking = null;
     }
 
     void Add_(string flag)

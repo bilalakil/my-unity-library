@@ -164,25 +164,33 @@ internal class AsyncHelper : MonoBehaviour
                 obj.AddComponent<AsyncHelper>();
                 DontDestroyOnLoad(obj);
             }
-            return _i;
+            return _iBacking;
         }
     }
-    static AsyncHelper _i;
+    static AsyncHelper _iBacking;
     static bool _haveInstantiated;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void Init()
+    {
+        _iBacking = null;
+        _haveInstantiated = false;
+    }
 
     void OnEnable()
     {
-        if (_i != null)
+        if (_iBacking != null)
         {
             Destroy(gameObject);
             return;
         }
 
-        _i = this;
+        _iBacking = this;
         _haveInstantiated = true;
     }
     void OnDisable()
     {
-        if (_i == this) _i = null;
+        if (_iBacking == this)
+            _iBacking = null;
     }
 }

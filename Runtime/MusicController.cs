@@ -39,10 +39,10 @@ public class MusicController : MonoBehaviour
                 DontDestroyOnLoad(obj);
                 obj.AddComponent<MusicController>();
             }
-            return __i;
+            return _iBacking;
         }
     }
-    static MusicController __i;
+    static MusicController _iBacking;
     static bool _haveInstantiated;
 
     public static MusicPlaylist ActivePlaylist => _i._activePlaylist;
@@ -64,6 +64,9 @@ public class MusicController : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     static void Init()
     {
+        _iBacking = null;
+        _haveInstantiated = false;
+
         var defaultMusic = Resources.Load<GameObject>("DefaultMusic");
         if (defaultMusic == null) return;
         
@@ -95,13 +98,13 @@ public class MusicController : MonoBehaviour
 
     void OnEnable()
     {
-        if (__i != null)
+        if (_iBacking != null)
         {
             Destroy(gameObject);
             return;
         }
 
-        __i = this;
+        _iBacking = this;
         _haveInstantiated = true;
         _playlists = new Dictionary<string, MusicPlaylist>();
     }
@@ -137,7 +140,8 @@ public class MusicController : MonoBehaviour
     
     void OnDisable()
     {
-        if (__i == this) __i = null;
+        if (_iBacking == this)
+            _iBacking = null;
     }
     
     void RegisterPlaylist_(MusicPlaylist playlist)
