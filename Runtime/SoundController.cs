@@ -36,17 +36,17 @@ public class SoundController : MonoBehaviour
     {
         get
         {
-            if (!_haveInstantiated)
+            if (_iBacking == null)
             {
                 var obj = new GameObject("SoundController");
                 DontDestroyOnLoad(obj);
-                obj.AddComponent<SoundController>();
+                _iBacking = obj.AddComponent<SoundController>();
             }
+
             return _iBacking;
         }
     }
     static SoundController _iBacking;
-    static bool _haveInstantiated;
 
     public static bool VolumeOn
     {
@@ -63,21 +63,13 @@ public class SoundController : MonoBehaviour
     }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    static void Init()
-    {
+    static void Reset() =>
         _iBacking = null;
-        _haveInstantiated = false;
 
-        var defaultSounds = Resources.Load<GameObject>("DefaultSounds");
-        if (defaultSounds == null) return;
-
-        DontDestroyOnLoad(Instantiate(defaultSounds));
-    }
-
-    public static void RegisterSound(AudioSource sound)
-        => _i.RegisterSound_(sound);
-    public static void DeregisterSound(AudioSource sound)
-        => _i?.DeregisterSound_(sound);
+    public static void RegisterSound(AudioSource sound) =>
+        _i.RegisterSound_(sound);
+    public static void DeregisterSound(AudioSource sound) =>
+        _i?.DeregisterSound_(sound);
     /// <summary>See "Sound naming convention" in this file's notes.</summary>
     public static AudioSource Get(string name) => _i.Get_(name);
     /// <summary>See "Sound naming convention" in this file's notes.</summary>
@@ -90,22 +82,30 @@ public class SoundController : MonoBehaviour
 
     void OnEnable()
     {
-        if (_iBacking != null)
+        if (
+            _iBacking != null &&
+            _iBacking != this
+        )
         {
             Destroy(gameObject);
             return;
         }
-
         _iBacking = this;
-        _haveInstantiated = true;
 
         _sounds = new Dictionary<string, List<AudioSource>>();
+
+        var defaultSounds = Resources.Load<GameObject>("DefaultSounds");
+        if (defaultSounds == null)
+            return;
+        
+        DontDestroyOnLoad(Instantiate(defaultSounds));
     }
 
     void Start()
     {
         var config = Resources.Load<MyLibraryConfig>("MyLibraryConfig");
-        if (config == null) return;
+        if (config == null)
+            return;
 
         _mixer = config.soundMixer;
         _volumeKey = config.soundMasterVolumeKey;
