@@ -1,14 +1,17 @@
 ﻿using UnityEngine;
 
-public class ForceWorldRotation : MonoBehaviour
+namespace MyLibrary
 {
-    public Quaternion rotation = Quaternion.identity;
-
-    void FixedUpdate() => Update();
-    void Update()
+    public class ForceWorldRotation : MonoBehaviour
     {
-        if (transform.rotation == rotation) return;
-        transform.rotation = rotation;
+        public Quaternion rotation = Quaternion.identity;
+
+        void FixedUpdate() => Update();
+        void Update()
+        {
+            if (transform.rotation == rotation) return;
+            transform.rotation = rotation;
+        }
+        void LateUpdate() => Update();
     }
-    void LateUpdate() => Update();
 }

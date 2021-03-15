@@ -1,31 +1,34 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 
-/**
- * ## Notes
- *
- * #### Adding/removing tracks during play
- * Adding/removing child objects will trigger recomputation of the list of tracks.
- * However, if a track that's currently being played is removed, it will continue
- * to be played until interruption/completion.
- */
-
-public class MusicPlaylist : MonoBehaviour
+namespace MyLibrary
 {
-    public IReadOnlyList<AudioSource> tracks => _tracks;
+    /**
+    * ## Notes
+    *
+    * #### Adding/removing tracks during play
+    * Adding/removing child objects will trigger recomputation of the list of tracks.
+    * However, if a track that's currently being played is removed, it will continue
+    * to be played until interruption/completion.
+    */
 
-    public bool autoStart;
-    public bool shuffle;
+    public class MusicPlaylist : MonoBehaviour
+    {
+        public IReadOnlyList<AudioSource> tracks => _tracks;
 
-    AudioSource[] _tracks;
+        public bool autoStart;
+        public bool shuffle;
 
-    void Awake() => UpdateTracks();
+        AudioSource[] _tracks;
 
-    void OnEnable() => MusicController.RegisterPlaylist(this);
-    
-    void OnTransformChildrenChanged() => UpdateTracks();
+        void Awake() => UpdateTracks();
 
-    void OnDisable() => MusicController.DeregisterPlaylist(this);
+        void OnEnable() => MusicController.RegisterPlaylist(this);
+        
+        void OnTransformChildrenChanged() => UpdateTracks();
 
-    void UpdateTracks() => _tracks = GetComponentsInChildren<AudioSource>();
+        void OnDisable() => MusicController.DeregisterPlaylist(this);
+
+        void UpdateTracks() => _tracks = GetComponentsInChildren<AudioSource>();
+    }
 }

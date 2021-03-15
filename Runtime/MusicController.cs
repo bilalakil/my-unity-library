@@ -4,189 +4,192 @@ using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.Audio;
 
-/**
- * ## Notes
- *
- * #### Playlist naming convention
- * Registered playlists can be accessed via the name of their game object,
- * ignoring "(Clone)" at the end.
- * 
- * #### Auto-initialised playlist
- * If prefab with the name "DefaultName" exists in a Resources folder,
- * it will be automatically initialised and made `DontDestroyOnLoad`.
- * You can create multiple playlists within this object if needed.
- *
- * #### Hot-reloading
- * Caveat: all playlists are deregistered and re-registered when this happens,
- * (meaning music will stop and only start again if there is an autoPlay list).
- */
-
-[AddComponentMenu("")] // To prevent it from showing up in the Add Component list
-[DefaultExecutionOrder(-1000)]
-public class MusicController : MonoBehaviour
+namespace MyLibrary
 {
-    const string PP_VOLUME_ON = "_ml_musicOn";
-    const float VOLUME_ON = 0f;
-    const float VOLUME_OFF = -100f;
+    /**
+    * ## Notes
+    *
+    * #### Playlist naming convention
+    * Registered playlists can be accessed via the name of their game object,
+    * ignoring "(Clone)" at the end.
+    * 
+    * #### Auto-initialised playlist
+    * If prefab with the name "DefaultName" exists in a Resources folder,
+    * it will be automatically initialised and made `DontDestroyOnLoad`.
+    * You can create multiple playlists within this object if needed.
+    *
+    * #### Hot-reloading
+    * Caveat: all playlists are deregistered and re-registered when this happens,
+    * (meaning music will stop and only start again if there is an autoPlay list).
+    */
 
-    static MusicController _i
+    [AddComponentMenu("")] // To prevent it from showing up in the Add Component list
+    [DefaultExecutionOrder(-1000)]
+    public class MusicController : MonoBehaviour
     {
-        get
+        const string PP_VOLUME_ON = "_ml_musicOn";
+        const float VOLUME_ON = 0f;
+        const float VOLUME_OFF = -100f;
+
+        static MusicController _i
         {
-            if (!_haveInstantiated)
+            get
             {
-                var obj = new GameObject("MusicController");
-                DontDestroyOnLoad(obj);
-                obj.AddComponent<MusicController>();
+                if (!_haveInstantiated)
+                {
+                    var obj = new GameObject("MusicController");
+                    DontDestroyOnLoad(obj);
+                    obj.AddComponent<MusicController>();
+                }
+                return _iBacking;
             }
-            return _iBacking;
         }
-    }
-    static MusicController _iBacking;
-    static bool _haveInstantiated;
+        static MusicController _iBacking;
+        static bool _haveInstantiated;
 
-    public static MusicPlaylist ActivePlaylist => _i._activePlaylist;
+        public static MusicPlaylist ActivePlaylist => _i._activePlaylist;
 
-    public static bool VolumeOn
-    {
-        get => _i._volumeOn;
-        set
+        public static bool VolumeOn
         {
-            Assert.IsTrue(_i._mixer != null);
+            get => _i._volumeOn;
+            set
+            {
+                Assert.IsTrue(_i._mixer != null);
 
-            _i._volumeOn = value;
-            PlayerPrefs.SetInt(PP_VOLUME_ON, value ? 1 : 0);
+                _i._volumeOn = value;
+                PlayerPrefs.SetInt(PP_VOLUME_ON, value ? 1 : 0);
 
-            _i._mixer.SetFloat(_i._volumeKey, value ? VOLUME_ON : VOLUME_OFF);
+                _i._mixer.SetFloat(_i._volumeKey, value ? VOLUME_ON : VOLUME_OFF);
+            }
         }
-    }
 
-    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
-    static void Init()
-    {
-        _iBacking = null;
-        _haveInstantiated = false;
-
-        var defaultMusic = Resources.Load<GameObject>("DefaultMusic");
-        if (defaultMusic == null) return;
-        
-        DontDestroyOnLoad(Instantiate(defaultMusic));
-    }
-
-    /// <summary>
-    /// Immediately takes over playing if `playlist.autoPlay == true`.
-    /// </summary>
-    public static void RegisterPlaylist(MusicPlaylist playlist) => _i.RegisterPlaylist_(playlist);
-    /// <summary>
-    /// Immediately stops playing if it was the active playlist.
-    /// </summary>
-    public static void DeregisterPlaylist(MusicPlaylist playlist) => _i?.DeregisterPlaylist_(playlist);
-    /// <summary>See "Playlist naming convention" in this file's notes.</summary>
-    public static void PlayPlaylist(string name) => PlayPlaylist(_i._playlists[name]);
-    public static void PlayPlaylist(MusicPlaylist playlist) => _i.PlayPlaylist_(playlist);
-    public static void Stop() => _i.Stop_();
-
-    Dictionary<string, MusicPlaylist> _playlists;
-    AudioMixer _mixer;
-    string _volumeKey;
-    bool _volumeOn;
-
-    MusicPlaylist _activePlaylist;
-    IReadOnlyList<AudioSource> _tracks;
-    int _trackIndex;
-    AudioSource _cur;
-
-    void OnEnable()
-    {
-        if (_iBacking != null)
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        static void Init()
         {
-            Destroy(gameObject);
-            return;
-        }
-
-        _iBacking = this;
-        _haveInstantiated = true;
-        _playlists = new Dictionary<string, MusicPlaylist>();
-    }
-
-    void Start()
-    {
-        var config = Resources.Load<MyLibraryConfig>("MyLibraryConfig");
-        if (config == null) return;
-
-        _mixer = config.musicMixer;
-        _volumeKey = config.musicMasterVolumeKey;
-
-        VolumeOn = PlayerPrefs.GetInt(PP_VOLUME_ON, 1) == 1;
-    }
-
-    void Update()
-    {
-        if (_activePlaylist == null || _tracks.Count == 0)
-        {
-            if (_cur != null) StopCur();
-            return;
-        }
-
-        var shouldPlayNext = _cur == null || !_cur.isPlaying;
-        if (!shouldPlayNext) return;
-
-        _trackIndex = (_trackIndex + 1) % _tracks.Count;
-
-        _cur = _tracks[_trackIndex];
-        if (_cur.isActiveAndEnabled) _cur.Play();
-        else _cur = null;
-    }
-    
-    void OnDisable()
-    {
-        if (_iBacking == this)
             _iBacking = null;
-    }
-    
-    void RegisterPlaylist_(MusicPlaylist playlist)
-    {
-        var name = playlist.gameObject.StandardName();
+            _haveInstantiated = false;
 
-        Assert.IsFalse(_playlists.ContainsKey(name));
-        _playlists[name] = playlist;
+            var defaultMusic = Resources.Load<GameObject>("DefaultMusic");
+            if (defaultMusic == null) return;
+            
+            DontDestroyOnLoad(Instantiate(defaultMusic));
+        }
 
-        if (playlist.autoStart) PlayPlaylist_(playlist);
-    }
+        /// <summary>
+        /// Immediately takes over playing if `playlist.autoPlay == true`.
+        /// </summary>
+        public static void RegisterPlaylist(MusicPlaylist playlist) => _i.RegisterPlaylist_(playlist);
+        /// <summary>
+        /// Immediately stops playing if it was the active playlist.
+        /// </summary>
+        public static void DeregisterPlaylist(MusicPlaylist playlist) => _i?.DeregisterPlaylist_(playlist);
+        /// <summary>See "Playlist naming convention" in this file's notes.</summary>
+        public static void PlayPlaylist(string name) => PlayPlaylist(_i._playlists[name]);
+        public static void PlayPlaylist(MusicPlaylist playlist) => _i.PlayPlaylist_(playlist);
+        public static void Stop() => _i.Stop_();
 
-    void DeregisterPlaylist_(MusicPlaylist playlist)
-    {
-        if (this == null) return;
+        Dictionary<string, MusicPlaylist> _playlists;
+        AudioMixer _mixer;
+        string _volumeKey;
+        bool _volumeOn;
 
-        var name = playlist.gameObject.StandardName();
+        MusicPlaylist _activePlaylist;
+        IReadOnlyList<AudioSource> _tracks;
+        int _trackIndex;
+        AudioSource _cur;
 
-        Assert.IsTrue(_playlists.ContainsKey(name));
-        if (_activePlaylist == playlist) Stop_();
+        void OnEnable()
+        {
+            if (_iBacking != null)
+            {
+                Destroy(gameObject);
+                return;
+            }
 
-        _playlists.Remove(name);
-    }
+            _iBacking = this;
+            _haveInstantiated = true;
+            _playlists = new Dictionary<string, MusicPlaylist>();
+        }
 
-    void PlayPlaylist_(MusicPlaylist playlist)
-    {
-        Stop_();
+        void Start()
+        {
+            var config = Resources.Load<MyLibraryConfig>("MyLibraryConfig");
+            if (config == null) return;
 
-        _activePlaylist = playlist;
-        _trackIndex = -1;
-        _tracks = _activePlaylist.shuffle
-            ? _activePlaylist.tracks.Shuffle_()
-            : _activePlaylist.tracks;
-    }
+            _mixer = config.musicMixer;
+            _volumeKey = config.musicMasterVolumeKey;
 
-    void Stop_()
-    {
-        StopCur();
-        _activePlaylist = null;
-    }
+            VolumeOn = PlayerPrefs.GetInt(PP_VOLUME_ON, 1) == 1;
+        }
 
-    void StopCur()
-    {
-        if (_cur == null) return;
-        _cur.Stop();
-        _cur = null;
+        void Update()
+        {
+            if (_activePlaylist == null || _tracks.Count == 0)
+            {
+                if (_cur != null) StopCur();
+                return;
+            }
+
+            var shouldPlayNext = _cur == null || !_cur.isPlaying;
+            if (!shouldPlayNext) return;
+
+            _trackIndex = (_trackIndex + 1) % _tracks.Count;
+
+            _cur = _tracks[_trackIndex];
+            if (_cur.isActiveAndEnabled) _cur.Play();
+            else _cur = null;
+        }
+        
+        void OnDisable()
+        {
+            if (_iBacking == this)
+                _iBacking = null;
+        }
+        
+        void RegisterPlaylist_(MusicPlaylist playlist)
+        {
+            var name = playlist.gameObject.StandardName();
+
+            Assert.IsFalse(_playlists.ContainsKey(name));
+            _playlists[name] = playlist;
+
+            if (playlist.autoStart) PlayPlaylist_(playlist);
+        }
+
+        void DeregisterPlaylist_(MusicPlaylist playlist)
+        {
+            if (this == null) return;
+
+            var name = playlist.gameObject.StandardName();
+
+            Assert.IsTrue(_playlists.ContainsKey(name));
+            if (_activePlaylist == playlist) Stop_();
+
+            _playlists.Remove(name);
+        }
+
+        void PlayPlaylist_(MusicPlaylist playlist)
+        {
+            Stop_();
+
+            _activePlaylist = playlist;
+            _trackIndex = -1;
+            _tracks = _activePlaylist.shuffle
+                ? _activePlaylist.tracks.Shuffle_()
+                : _activePlaylist.tracks;
+        }
+
+        void Stop_()
+        {
+            StopCur();
+            _activePlaylist = null;
+        }
+
+        void StopCur()
+        {
+            if (_cur == null) return;
+            _cur.Stop();
+            _cur = null;
+        }
     }
 }

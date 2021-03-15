@@ -1,10 +1,13 @@
 ﻿using UnityEngine;
 
-public class AnimationHelper : MonoBehaviour
+namespace MyLibrary
 {
-    public void PlaySound(string sound) =>
-        SoundController.Play(sound);
+    public class AnimationHelper : MonoBehaviour
+    {
+        public void PlaySound(string sound) =>
+            SoundController.Play(sound);
 
-    public void SelfDestruct() =>
-        Destroy(gameObject);
+        public void SelfDestruct() =>
+            Destroy(gameObject);
+    }
 }
