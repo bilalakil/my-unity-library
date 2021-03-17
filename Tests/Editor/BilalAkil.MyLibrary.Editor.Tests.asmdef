@@ -5,7 +5,8 @@
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
         "BilalAkil.MyLibrary.Runtime",
-        "BilalAkil.MyLibrary.Runtime.Tests"
+        "BilalAkil.MyLibrary.Runtime.Tests",
+        "BilalAkil.MyLibrary.Editor"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

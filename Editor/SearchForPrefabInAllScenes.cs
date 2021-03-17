@@ -1,74 +1,81 @@
-﻿using UnityEditor;
+﻿using System.Collections.Generic;
+using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEditor.SceneManagement;
-using System.Collections.Generic;
 
-public class SearchForPrefabInAllScenes : EditorWindow
+namespace MyLibrary
 {
-    Object _obj;
-    string _prefabToFind;
-    SceneAsset[] _results;
-
-    [MenuItem("Search/Search for prefab in all scenes")]
-    public static void ShowThis() => EditorWindow.GetWindow(
-        typeof(SearchForPrefabInAllScenes),
-        false,
-        "Search for Prefab in All Scenes",
-        true
-    );
-    
-    void OnGUI()
+    public class SearchForPrefabInAllScenes : EditorWindow
     {
-        _obj = EditorGUILayout.ObjectField("Prefab", _obj, typeof(GameObject), false);
-        _prefabToFind = _obj == null ? null : PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(_obj);
+        [MenuItem("Search/Search for Prefab in All Scenes")]
+        public static void ShowThis() => EditorWindow.GetWindow(
+            typeof(SearchForPrefabInAllScenes),
+            false,
+            "Search for Prefab in All Scenes",
+            true
+        );
+        
+        Vector2 _scrollPos;
+        Object _obj;
+        string _prefabToFind;
+        SceneAsset[] _results;
 
-        if (GUILayout.Button("Search") && _prefabToFind != null)
+        void OnGUI()
         {
-            var curScene = SceneManager.GetActiveScene().path;
-            var scenesWithMatch = new List<SceneAsset>();
+            _obj = EditorGUILayout.ObjectField("Prefab", _obj, typeof(GameObject), false);
+            _prefabToFind = _obj == null ? null : PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(_obj);
 
-            foreach (var sceneGUID in AssetDatabase.FindAssets("t:Scene"))
+            if (GUILayout.Button("Search") && _prefabToFind != null)
             {
-                var scenePath = AssetDatabase.GUIDToAssetPath(sceneGUID);
-                EditorSceneManager.OpenScene(scenePath);
-                var scene = SceneManager.GetActiveScene();
-                
-                var sceneHasMatch = false;
+                var curScene = SceneManager.GetActiveScene().path;
+                var scenesWithMatch = new List<SceneAsset>();
 
-                foreach (var rootObj in scene.GetRootGameObjects())
+                foreach (var sceneGUID in AssetDatabase.FindAssets("t:Scene"))
                 {
-                    if (sceneHasMatch) break;
+                    var scenePath = AssetDatabase.GUIDToAssetPath(sceneGUID);
+                    EditorSceneManager.OpenScene(scenePath);
+                    var scene = SceneManager.GetActiveScene();
+                    
+                    var sceneHasMatch = false;
 
-                    foreach (var tfm in rootObj.GetComponentsInChildren<Transform>(true))
+                    foreach (var rootObj in scene.GetRootGameObjects())
                     {
-                        if (PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(tfm.gameObject) == _prefabToFind)
-                        {
-                            sceneHasMatch = true;
-                            scenesWithMatch.Add(AssetDatabase.LoadAssetAtPath<SceneAsset>(scenePath));
+                        if (sceneHasMatch) break;
 
-                            break;
+                        foreach (var tfm in rootObj.GetComponentsInChildren<Transform>(true))
+                        {
+                            if (PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(tfm.gameObject) == _prefabToFind)
+                            {
+                                sceneHasMatch = true;
+                                scenesWithMatch.Add(AssetDatabase.LoadAssetAtPath<SceneAsset>(scenePath));
+
+                                break;
+                            }
                         }
                     }
                 }
+
+                _results = scenesWithMatch.ToArray();
+
+                EditorSceneManager.OpenScene(curScene);
             }
 
-            _results = scenesWithMatch.ToArray();
+            EditorGUILayout.LabelField("Results");
 
-            EditorSceneManager.OpenScene(curScene);
+            _scrollPos = EditorGUILayout.BeginScrollView(_scrollPos);
+            ++EditorGUI.indentLevel;
+
+            if (_results != null)
+            {
+                if (_results.Length != 0)
+                    foreach (var scene in _results)
+                        EditorGUILayout.ObjectField(scene, typeof(Object), false);
+                else EditorGUILayout.LabelField("Nothing found!");
+            }
+
+            --EditorGUI.indentLevel;
+            EditorGUILayout.EndScrollView();
         }
-
-        EditorGUILayout.LabelField("Results");
-        ++EditorGUI.indentLevel;
-
-        if (_results != null)
-        {
-            if (_results.Length != 0)
-                foreach (var scene in _results)
-                    EditorGUILayout.ObjectField(scene, typeof(Object), false);
-            else EditorGUILayout.LabelField("Nothing found!");
-        }
-
-        --EditorGUI.indentLevel;
     }
 }
