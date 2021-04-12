@@ -10,17 +10,15 @@ namespace MyLibrary
     * ## Notes
     *
     * #### Playlist naming convention
-    * Registered playlists can be accessed via the name of their game object,
-    * ignoring "(Clone)" at the end.
+    * Registered playlists can be accessed by their game object's StandardName.
     * 
-    * #### Auto-initialised playlist
-    * If prefab with the name "DefaultName" exists in a Resources folder,
+    * #### Auto-initialised playlist(s)
+    * If a prefab named "DefaultName" exists in a Resources folder,
     * it will be automatically initialised and made `DontDestroyOnLoad`.
-    * You can create multiple playlists within this object if needed.
     *
     * #### Hot-reloading
     * Caveat: all playlists are deregistered and re-registered when this happens,
-    * (meaning music will stop and only start again if there is an autoPlay list).
+    * (meaning music will stop, and only start again if there is an autoPlay list).
     */
 
     [AddComponentMenu("")] // To prevent it from showing up in the Add Component list
@@ -70,7 +68,8 @@ namespace MyLibrary
             _haveInstantiated = false;
 
             var defaultMusic = Resources.Load<GameObject>("DefaultMusic");
-            if (defaultMusic == null) return;
+            if (defaultMusic == null)
+                return;
             
             DontDestroyOnLoad(Instantiate(defaultMusic));
         }
@@ -102,6 +101,7 @@ namespace MyLibrary
         {
             if (_iBacking != null)
             {
+                Debug.LogWarning("MusicController duplicated, self-destructing");
                 Destroy(gameObject);
                 return;
             }
@@ -114,7 +114,8 @@ namespace MyLibrary
         void Start()
         {
             var config = Resources.Load<MyLibraryConfig>("MyLibraryConfig");
-            if (config == null) return;
+            if (config == null)
+                return;
 
             _mixer = config.musicMixer;
             _volumeKey = config.musicMasterVolumeKey;
@@ -126,17 +127,20 @@ namespace MyLibrary
         {
             if (_activePlaylist == null || _tracks.Count == 0)
             {
-                if (_cur != null) StopCur();
+                if (_cur != null)
+                    StopCur();
                 return;
             }
 
             var shouldPlayNext = _cur == null || !_cur.isPlaying;
-            if (!shouldPlayNext) return;
+            if (!shouldPlayNext)
+                return;
 
             _trackIndex = (_trackIndex + 1) % _tracks.Count;
 
             _cur = _tracks[_trackIndex];
-            if (_cur.isActiveAndEnabled) _cur.Play();
+            if (_cur.isActiveAndEnabled)
+                _cur.Play();
             else _cur = null;
         }
         
@@ -153,17 +157,20 @@ namespace MyLibrary
             Assert.IsFalse(_playlists.ContainsKey(name));
             _playlists[name] = playlist;
 
-            if (playlist.autoStart) PlayPlaylist_(playlist);
+            if (playlist.autoStart)
+                PlayPlaylist_(playlist);
         }
 
         void DeregisterPlaylist_(MusicPlaylist playlist)
         {
-            if (this == null) return;
+            if (this == null)
+                return;
 
             var name = playlist.gameObject.StandardName();
 
             Assert.IsTrue(_playlists.ContainsKey(name));
-            if (_activePlaylist == playlist) Stop_();
+            if (_activePlaylist == playlist)
+                Stop_();
 
             _playlists.Remove(name);
         }
@@ -187,7 +194,8 @@ namespace MyLibrary
 
         void StopCur()
         {
-            if (_cur == null) return;
+            if (_cur == null)
+                return;
             _cur.Stop();
             _cur = null;
         }
