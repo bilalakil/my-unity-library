@@ -21,7 +21,7 @@ namespace MyLibrary
     * (meaning music will stop, and only start again if there is an autoPlay list).
     */
 
-    [AddComponentMenu("")] // To prevent it from showing up in the Add Component list
+    [AddComponentMenu("")]
     [DefaultExecutionOrder(-1000)]
     public class MusicController : MonoBehaviour
     {
