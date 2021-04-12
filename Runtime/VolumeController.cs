@@ -5,14 +5,24 @@ using UnityEngine;
 
 namespace MyLibrary
 {
+    /**
+     * ## Notes
+     * Deals in percentages (e.g. 0.5 user volume and 0.5 dynamic volume results in 0.25 final).
+     * Only final volumes between 0 and 1 have been properly considered.
+     *
+     * ### Persistence
+     * Uses the default KVS to store user volume settings. 
+     */
+
     [AddComponentMenu("")]
     [DefaultExecutionOrder(-5000)] // After KVS, before other plugin/user-land code
     public class VolumeController : MonoBehaviour
     {
         public static string KEY_VOLUME_TEMPLATE = "myLibrary_volume_{0}";
-        public const float VOLUME_MAX = 0f;
-        public const float VOLUME_MIN = -50f;
-        public const float VOLUME_DIFF = VOLUME_MAX - VOLUME_MIN;
+
+        // https://www.desmos.com/calculator/2xkckawwxt (~-80 at 0, 1 at 1)
+        public static float GetDecibels(float volPct) =>
+            Mathf.Log(volPct * (1f - 0.0182f) + 0.0182f) * 20f;
 
         static VolumeController _iBacking;
         static VolumeController I
@@ -208,7 +218,7 @@ namespace MyLibrary
         }
 
         float GetActualVolume(float userVolume, float dynamicVolume) =>
-            VOLUME_MIN + VOLUME_DIFF * (userVolume * dynamicVolume);
+            GetDecibels(userVolume * dynamicVolume);
 
         [Serializable]
         class VolumeConfig

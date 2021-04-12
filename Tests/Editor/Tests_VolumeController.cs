@@ -10,6 +10,7 @@ namespace MyLibrary
 {
     /**
      * NOTE: These tests assume the DefaultMusic resource DOES NOT exist.
+     * NOTE: These tests assume a MyLibraryConfig resource DOES NOT exist.
      * WARNING: Running these tests will nuke the default KVS data!
      */
     public class Tests_VolumeController : UnityEditorBDD
@@ -38,10 +39,10 @@ namespace MyLibrary
             // GIVEN a blank slate
             ThenUserVolumeIs("music", 1f);
             ThenDynamicVolumeIs("music", 1f);
-            ThenMixerVolumeIs("music", VolumeController.VOLUME_MAX);
+            ThenMixerVolumeIs("music", 0);
             ThenUserVolumeIs("sfx", 1f);
             ThenDynamicVolumeIs("sfx", 1f);
-            ThenMixerVolumeIs("sfx", VolumeController.VOLUME_MAX);
+            ThenMixerVolumeIs("sfx", 0);
 
             WhenUserVolumeSetTo("music", 0.5f);
             WhenDynamicVolumeSetTo("sfx", 0.5f);
@@ -49,8 +50,8 @@ namespace MyLibrary
             ThenDynamicVolumeIs("sfx", 0.5f);
 
             yield return WhenPostUpdate();
-            ThenMixerVolumeIs("music", VolumeController.VOLUME_MIN + VolumeController.VOLUME_DIFF * 0.5f);
-            ThenMixerVolumeIs("sfx", VolumeController.VOLUME_MIN + VolumeController.VOLUME_DIFF * 0.5f);
+            ThenMixerVolumeIs("music", VolumeController.GetDecibels(0.5f));
+            ThenMixerVolumeIs("sfx", VolumeController.GetDecibels(0.5f));
 
             WhenDynamicVolumeSetTo("music", 0.5f);
             WhenUserVolumeSetTo("sfx", 0.5f);
@@ -58,8 +59,8 @@ namespace MyLibrary
             ThenUserVolumeIs("sfx", 0.5f);
 
             yield return WhenPostUpdate();
-            ThenMixerVolumeIs("music", VolumeController.VOLUME_MIN + VolumeController.VOLUME_DIFF * 0.5f * 0.5f);
-            ThenMixerVolumeIs("sfx", VolumeController.VOLUME_MIN + VolumeController.VOLUME_DIFF * 0.5f * 0.5f);
+            ThenMixerVolumeIs("music", VolumeController.GetDecibels(0.5f * 0.5f));
+            ThenMixerVolumeIs("sfx", VolumeController.GetDecibels(0.5f * 0.5f));
 
             WhenUserVolumeSetTo("music", 1f);
             WhenDynamicVolumeSetTo("sfx", 1f);
@@ -67,8 +68,8 @@ namespace MyLibrary
             ThenDynamicVolumeIs("sfx", 1f);
 
             yield return WhenPostUpdate();
-            ThenMixerVolumeIs("music", VolumeController.VOLUME_MIN + VolumeController.VOLUME_DIFF * 0.5f);
-            ThenMixerVolumeIs("sfx", VolumeController.VOLUME_MIN + VolumeController.VOLUME_DIFF * 0.5f);
+            ThenMixerVolumeIs("music", VolumeController.GetDecibels(0.5f));
+            ThenMixerVolumeIs("sfx", VolumeController.GetDecibels(0.5f));
 
             WhenDynamicVolumeSetTo("music", 1f);
             WhenUserVolumeSetTo("sfx", 1f);
@@ -76,8 +77,8 @@ namespace MyLibrary
             ThenUserVolumeIs("sfx", 1f);
 
             yield return WhenPostUpdate();
-            ThenMixerVolumeIs("music", VolumeController.VOLUME_MAX);
-            ThenMixerVolumeIs("sfx", VolumeController.VOLUME_MAX);
+            ThenMixerVolumeIs("music", 0);
+            ThenMixerVolumeIs("sfx", 0);
 
             WhenDynamicVolumeSetTo("music", 1.2f);
             WhenUserVolumeSetTo("sfx", 1.2f);
@@ -85,8 +86,8 @@ namespace MyLibrary
             ThenUserVolumeIs("sfx", 1.2f);
 
             yield return WhenPostUpdate();
-            ThenMixerVolumeIs("music", VolumeController.VOLUME_MIN + VolumeController.VOLUME_DIFF * 1.2f);
-            ThenMixerVolumeIs("sfx", VolumeController.VOLUME_MIN + VolumeController.VOLUME_DIFF * 1.2f);
+            ThenMixerVolumeIs("music", VolumeController.GetDecibels(1.2f));
+            ThenMixerVolumeIs("sfx", VolumeController.GetDecibels(1.2f));
 
             WhenUserVolumeSetTo("music", 0.2f);
             WhenDynamicVolumeSetTo("sfx", 0.2f);
@@ -94,8 +95,8 @@ namespace MyLibrary
             ThenDynamicVolumeIs("sfx", 0.2f);
 
             yield return WhenPostUpdate();
-            ThenMixerVolumeIs("music", VolumeController.VOLUME_MIN + VolumeController.VOLUME_DIFF * 0.2f * 1.2f);
-            ThenMixerVolumeIs("sfx", VolumeController.VOLUME_MIN + VolumeController.VOLUME_DIFF * 0.2f * 1.2f);
+            ThenMixerVolumeIs("music", VolumeController.GetDecibels(0.2f * 1.2f));
+            ThenMixerVolumeIs("sfx", VolumeController.GetDecibels(0.2f * 1.2f));
         }
 
         [UnityTest]
@@ -103,7 +104,7 @@ namespace MyLibrary
         public IEnumerator VolumeChangeAppliesToMixerNextFrame()
         {
             // GIVEN a blank slate
-            ThenMixerVolumeIs("music", VolumeController.VOLUME_MAX);
+            ThenMixerVolumeIs("music", 0);
             ThenUserVolumeIs("music", 1f);
             ThenDynamicVolumeIs("music", 1f);
 
@@ -111,10 +112,10 @@ namespace MyLibrary
             WhenDynamicVolumeSetTo("music", 0.5f);
             ThenUserVolumeIs("music", 0.5f);
             ThenDynamicVolumeIs("music", 0.5f);
-            ThenMixerVolumeIs("music", VolumeController.VOLUME_MAX);
+            ThenMixerVolumeIs("music", 0);
 
             yield return WhenPostUpdate();
-            ThenMixerVolumeIs("music", VolumeController.VOLUME_MIN + VolumeController.VOLUME_DIFF * 0.5f * 0.5f);
+            ThenMixerVolumeIs("music", VolumeController.GetDecibels(0.5f * 0.5f));
         }
 
         [UnityTest]
@@ -131,7 +132,7 @@ namespace MyLibrary
             ThenDynamicVolumeIs("music", 1f);
 
             yield return WhenPostUpdate();
-            ThenMixerVolumeIs("music", VolumeController.VOLUME_MIN + VolumeController.VOLUME_DIFF * 0.5f);
+            ThenMixerVolumeIs("music", VolumeController.GetDecibels(0.5f));
         }
 
         [Test]
@@ -186,6 +187,10 @@ namespace MyLibrary
             ThenGettingUserVolumeThrowsError(@ref, expected);
             ThenGettingDynamicVolumeThrowsError(@ref, expected);
         }
+
+        [Test]
+        public void DecibelsCalculationWorksFineWith0Volume() =>
+            VolumeController.GetDecibels(0f);
 
         void GivenKVSUserVolume(string @ref, float val) =>
             KVS.SetFloat(
