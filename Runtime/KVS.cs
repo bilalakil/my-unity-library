@@ -23,12 +23,13 @@ namespace MyLibrary
      * Be sure to call Save sometime after modifying critical data.
      *
      * ### Complexity
-     * - GetX: Dict<>[] + List[] (O(1))
-     * - HasKey: Dict<>[] (O(1))
-     * - SetX: Dict<>.Add + List<>.Add (O(1) or O(n) if resize is needed)
+     * - GetX: Dictionary<,>[] + List<>[] (O(1))
+     * - HasKey: Dictionary<,>[] (O(1))
+     * - SetX: Dictionary<,>.Add + List<>.Add (O(1) or O(n) if resize is needed)
      * - DeleteAll: O(1)
      * - DeleteKey: O(n)
      */
+
     [AddComponentMenu("")]
     [DefaultExecutionOrder(-10000)]
     public class KVS : MonoBehaviour

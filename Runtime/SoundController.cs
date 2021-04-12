@@ -24,14 +24,10 @@ namespace MyLibrary
     * it will be automatically initialised and made `DontDestroyOnLoad`.
     */
 
-    [AddComponentMenu("")] // To prevent it from showing up in the Add Component list
+    [AddComponentMenu("")]
     [DefaultExecutionOrder(-1000)]
     public class SoundController : MonoBehaviour
     {
-        const string PP_VOLUME_ON = "_ml_soundOn";
-        const float VOLUME_ON = 0f;
-        const float VOLUME_OFF = -100f;
-
         static Regex _nameEndPattern = new Regex("[-_]*[0-9]+$");
 
         static SoundController _i
@@ -50,20 +46,6 @@ namespace MyLibrary
         }
         static SoundController _iBacking;
 
-        public static bool VolumeOn
-        {
-            get => _i._volumeOn;
-            set
-            {
-                Assert.IsTrue(_i._mixer != null);
-                
-                _i._volumeOn = value;
-                PlayerPrefs.SetInt(PP_VOLUME_ON, value ? 1 : 0);
-
-                _i._mixer.SetFloat(_i._volumeKey, value ? VOLUME_ON : VOLUME_OFF);
-            }
-        }
-
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void Reset() =>
             _iBacking = null;
@@ -78,9 +60,6 @@ namespace MyLibrary
         public static void Play(string name) => _i.Get_(name).Play();
 
         Dictionary<string, List<AudioSource>> _sounds;
-        AudioMixer _mixer;
-        string _volumeKey;
-        bool _volumeOn;
 
         void OnEnable()
         {
@@ -101,19 +80,6 @@ namespace MyLibrary
                 return;
             
             DontDestroyOnLoad(Instantiate(defaultSounds));
-        }
-
-        void Start()
-        {
-            var config = Resources.Load<MyLibraryConfig>("MyLibraryConfig");
-            if (config == null)
-                return;
-
-            _mixer = config.soundMixer;
-            _volumeKey = config.soundMasterVolumeKey;
-
-            if (_i._mixer != null)
-                VolumeOn = PlayerPrefs.GetInt(PP_VOLUME_ON, 1) == 1;
         }
 
         void OnDisable()

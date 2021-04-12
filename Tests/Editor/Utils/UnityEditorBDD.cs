@@ -1,15 +1,47 @@
+using System;
+using System.Collections;
+using NUnit.Framework;
+using NUnit.Framework.Interfaces;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.TestTools;
 
-public class UnityEditorBDD : BDD
+namespace MyLibrary
 {
-    public const string TEST_ASSET_DIR = "Packages/me.bilalakil.my-unity-library/Tests/Editor/Assets";
-
-    protected GameObject GivenTestGameObject(string path)
+    public class UnityEditorBDD : BDD
     {
-        var fullPath = TEST_ASSET_DIR + "/" + path;
-        var asset = AssetDatabase.LoadAssetAtPath<GameObject>(fullPath);
-        var obj = GameObject.Instantiate(asset);
-        return obj;
+        public const string TEST_ASSET_DIR = "Packages/me.bilalakil.my-unity-library/Tests/Editor/Assets";
+
+        protected GameObject GivenTestGameObject(string path)
+        {
+            var fullPath = TEST_ASSET_DIR + "/" + path;
+            var asset = AssetDatabase.LoadAssetAtPath<GameObject>(fullPath);
+            var obj = GameObject.Instantiate(asset);
+            return obj;
+        }
+
+        [AttributeUsage(AttributeTargets.Method)]
+        protected class GivenMyLibraryConfigAttribute : NUnitAttribute, IOuterUnityTestAction
+        {
+            string _configPath;
+
+            MyLibraryConfig _prevConfig;
+
+            public GivenMyLibraryConfigAttribute(string configPath) =>
+                _configPath = configPath + ".asset";
+            
+            public IEnumerator BeforeTest(ITest test)
+            {
+                _prevConfig = MyLibraryConfig.loadOverride;
+                MyLibraryConfig.loadOverride = AssetDatabase.LoadAssetAtPath<MyLibraryConfig>(_configPath);
+                yield break;
+            }
+
+            public IEnumerator AfterTest(ITest test)
+            {
+                MyLibraryConfig.loadOverride = _prevConfig;
+                yield break;
+            }
+        }
     }
 }

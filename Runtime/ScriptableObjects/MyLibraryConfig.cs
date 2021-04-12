@@ -6,9 +6,10 @@ namespace MyLibrary
 {
     /**
     * ## Notes
+    * Put one of these in a Resources folder, named "MyLibraryConfig" to globally configure this library.
+    * Alternatively, one can be set with code via MyLibraryConfig.loadOverride.
     *
-    * Put one of these in a Resources folder, named "MyLibraryConfig",
-    * to globally configure this library.
+    * The library does not support these values being changed during play (it probably caches the values where needed).
     *
     * All settings under `testConfig` are only relevant in-editor, for testing.
     */
@@ -16,10 +17,23 @@ namespace MyLibrary
     [CreateAssetMenu(menuName = "Config/MyLibraryConfig", fileName = "MyLibraryConfig")]
     public class MyLibraryConfig : ScriptableObject
     {
-        public AudioMixer musicMixer;
-        public string musicMasterVolumeKey = "MasterVolume";
-        public AudioMixer soundMixer;
-        public string soundMasterVolumeKey = "MasterVolume";
+        public static MyLibraryConfig loadOverride;
+        public static MyLibraryConfig Load()
+        {
+            if (loadOverride != null)
+                return loadOverride;
+            return Resources.Load<MyLibraryConfig>("MyLibraryConfig");
+        }
+
+        public VolumeConfig[] volumeConfigs;
+
+        [Serializable]
+        public struct VolumeConfig
+        {
+            public string @ref;
+            public AudioMixer mixer;
+            public string mixerVolumeKey;
+        }
 
         public TestConfig testConfig;
 

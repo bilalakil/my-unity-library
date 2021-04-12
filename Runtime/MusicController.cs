@@ -18,17 +18,13 @@ namespace MyLibrary
     *
     * #### Hot-reloading
     * Caveat: all playlists are deregistered and re-registered when this happens,
-    * (meaning music will stop, and only start again if there is an autoPlay list).
+    * (meaning music will stop, and only start again if there is an autoPlay list registered).
     */
 
     [AddComponentMenu("")]
     [DefaultExecutionOrder(-1000)]
     public class MusicController : MonoBehaviour
     {
-        const string PP_VOLUME_ON = "_ml_musicOn";
-        const float VOLUME_ON = 0f;
-        const float VOLUME_OFF = -100f;
-
         static MusicController _i
         {
             get
@@ -47,20 +43,6 @@ namespace MyLibrary
 
         public static MusicPlaylist ActivePlaylist => _i._activePlaylist;
 
-        public static bool VolumeOn
-        {
-            get => _i._volumeOn;
-            set
-            {
-                Assert.IsTrue(_i._mixer != null);
-
-                _i._volumeOn = value;
-                PlayerPrefs.SetInt(PP_VOLUME_ON, value ? 1 : 0);
-
-                _i._mixer.SetFloat(_i._volumeKey, value ? VOLUME_ON : VOLUME_OFF);
-            }
-        }
-
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Init()
         {
@@ -72,6 +54,16 @@ namespace MyLibrary
                 return;
             
             DontDestroyOnLoad(Instantiate(defaultMusic));
+        }
+
+        public static void Deinit()
+        {
+            if (_iBacking == null)
+                return;
+
+            Destroy(_iBacking.gameObject);
+            _iBacking = null;
+            _haveInstantiated = false;
         }
 
         /// <summary>
@@ -88,9 +80,6 @@ namespace MyLibrary
         public static void Stop() => _i.Stop_();
 
         Dictionary<string, MusicPlaylist> _playlists;
-        AudioMixer _mixer;
-        string _volumeKey;
-        bool _volumeOn;
 
         MusicPlaylist _activePlaylist;
         IReadOnlyList<AudioSource> _tracks;
@@ -109,18 +98,6 @@ namespace MyLibrary
             _iBacking = this;
             _haveInstantiated = true;
             _playlists = new Dictionary<string, MusicPlaylist>();
-        }
-
-        void Start()
-        {
-            var config = Resources.Load<MyLibraryConfig>("MyLibraryConfig");
-            if (config == null)
-                return;
-
-            _mixer = config.musicMixer;
-            _volumeKey = config.musicMasterVolumeKey;
-
-            VolumeOn = PlayerPrefs.GetInt(PP_VOLUME_ON, 1) == 1;
         }
 
         void Update()

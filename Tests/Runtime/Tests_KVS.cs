@@ -7,20 +7,14 @@ using UnityEngine.TestTools;
 
 namespace MyLibrary
 {
-    /// <summary>
-    /// WARNING: Running these tests will nuke the default KVS data!
-    /// </summary>
+    /**
+     * WARNING: Running these tests will nuke the default KVS data!
+     */
     public class Tests_KVS
     {
         [SetUp]
-        public void SetUp()
-        {
-            KVS.Deinit();
-            DestroyKVSOnDisk();
-        }
-
         [TearDown]
-        public void TearDown()
+        public void ResetKVS()
         {
             KVS.Deinit();
             DestroyKVSOnDisk();
