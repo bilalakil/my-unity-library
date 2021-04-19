@@ -129,8 +129,8 @@ namespace MyLibrary
             var platform = Application.platform;
 
     #if UNITY_EDITOR
-            if (_config?.testConfig.useFlagPlatformOverride ?? false)
-                platform = _config.testConfig.flagPlatformOverride;
+            if (_config?.testing.flagOverrides.overridePlatform ?? false)
+                platform = _config.testing.flagOverrides.platform;
     #endif
 
             switch (platform)
@@ -182,8 +182,8 @@ namespace MyLibrary
         void PrepareFPSFlags()
         {
     #if UNITY_EDITOR
-            if (_config?.testConfig.useFlagFPSOverride ?? false)
-                _sessionFPS = _config.testConfig.flagFPSOverride;
+            if (_config?.testing.flagOverrides.overrideFPS ?? false)
+                _sessionFPS = _config.testing.flagOverrides.fps;
     #endif
 
             if (_sessionFPS == 0f)

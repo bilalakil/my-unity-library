@@ -17,19 +17,27 @@ namespace MyLibrary
     {
         const string ASSET_DIR = UnityEditorBDD.TEST_ASSET_DIR + "/VolumeController";
 
+        static string[] _configsToCleanUp = new string[]
+        {
+            ASSET_DIR + "/TestConfigStandard",
+        };
+
         [SetUp]
         public void ResetAndInitVolumeController()
         {
-            KVS.DeleteAll();
-            VolumeController.Deinit();
+            ResetVolumeController();
+
+            KVS.Init();
             VolumeController.Init();
         }
 
         [TearDown]
         public void ResetVolumeController()
         {
-            KVS.DeleteAll();
             VolumeController.Deinit();
+            KVS.Deinit();
+
+            DestroyKVSOnDisk(_configsToCleanUp);
         }
 
         [UnityTest]
@@ -150,7 +158,7 @@ namespace MyLibrary
         public void SetMethodsLogErrorIfNotConfigured()
         {
             // GIVEN a blank slate WITH NO CONFIG SET
-            var expected = "Cannot change volume without setting MyLibraryConfig.volumeConfigs";
+            var expected = "Cannot change volume without setting up MyLibraryConfig.volumes";
             ThenSettingUserVolumeLogsError("music", expected);
             ThenSettingDynamicVolumeLogsError("music", expected);
         }
@@ -171,7 +179,7 @@ namespace MyLibrary
         public void GetMethodsThrowErrorIfNotConfigured()
         {
             // GIVEN a blank slate WITH NO CONFIG SET
-            var expected = "Cannot get volume without setting MyLibraryConfig.volumeConfigs";
+            var expected = "Cannot get volume without setting up MyLibraryConfig.volumes";
             ThenGettingUserVolumeThrowsError("music", expected);
             ThenGettingDynamicVolumeThrowsError("music", expected);
         }
@@ -186,6 +194,26 @@ namespace MyLibrary
             var expected = $"Tried to deal with volume for non-existing mixer: {@ref}";
             ThenGettingUserVolumeThrowsError(@ref, expected);
             ThenGettingDynamicVolumeThrowsError(@ref, expected);
+        }
+
+        [Test]
+        [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigNoKVS")]
+        public void SetUserVolumeLogsErrorIfKVSNotConfigured() =>
+            ThenSettingUserVolumeLogsError("music", "User volume cannot be used without setting up MyLibraryConfig.kvs");
+
+        [Test]
+        [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigNoKVS")]
+        public void GetUserVolumeThrowsErrorIfKVSNotConfigured() =>
+            ThenGettingUserVolumeThrowsError("music", "User volume cannot be used without setting up MyLibraryConfig.kvs");
+
+        [UnityTest]
+        [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigNoKVS")]
+        public IEnumerator DynamicVolumeStillWorksIfKVSNotConfigured()
+        {
+            WhenDynamicVolumeSetTo("music", 0.5f);
+            yield return WhenPostUpdate();
+            ThenDynamicVolumeIs("music", 0.5f);
+            ThenMixerVolumeIs("music", VolumeController.GetDecibels(0.5f));
         }
 
         [Test]
@@ -224,8 +252,7 @@ namespace MyLibrary
 
         void ThenMixerVolumeIs(string @ref, float expected)
         {
-            var libConfig = MyLibraryConfig.Load();
-            var volConfig = libConfig.volumeConfigs
+            var volConfig = MyLibraryConfig.I.volumes
                 .Where(_ => _.@ref == @ref)
                 .First();
 

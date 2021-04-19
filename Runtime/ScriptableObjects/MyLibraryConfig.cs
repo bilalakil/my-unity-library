@@ -18,32 +18,74 @@ namespace MyLibrary
     public class MyLibraryConfig : ScriptableObject
     {
         public static MyLibraryConfig loadOverride;
-        public static MyLibraryConfig Load()
+        static MyLibraryConfig _iBacking;
+        public static MyLibraryConfig I
         {
-            if (loadOverride != null)
-                return loadOverride;
-            return Resources.Load<MyLibraryConfig>("MyLibraryConfig");
+            get
+            {
+                if (loadOverride != null)
+                    return loadOverride;
+                if (_iBacking == null)
+                    _iBacking = Resources.Load<MyLibraryConfig>("MyLibraryConfig");
+                return _iBacking;
+            }
         }
 
-        public VolumeConfig[] volumeConfigs;
+        static Action _quittingHandler;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        public static void Init()
+        {
+            if (_quittingHandler == null)
+            {
+                _quittingHandler = Deinit;
+                Application.quitting += _quittingHandler;
+            }
+        }
+
+        public static void Deinit()
+        {
+            _iBacking = null;
+
+            if (_quittingHandler != null)
+            {
+                Application.quitting -= _quittingHandler;
+                _quittingHandler = null;
+            }
+        }
+
+        public KVS kvs;
+        public Volume[] volumes;
 
         [Serializable]
-        public struct VolumeConfig
+        public class KVS
+        {
+            public string defaultFilename = "kvs.dat";
+        }
+
+        [Serializable]
+        public struct Volume
         {
             public string @ref;
             public AudioMixer mixer;
             public string mixerVolumeKey;
         }
 
-        public TestConfig testConfig;
+        public Testing testing;
 
         [Serializable]
-        public struct TestConfig
+        public struct Testing
         {
-            public bool useFlagPlatformOverride;
-            public RuntimePlatform flagPlatformOverride;
-            public bool useFlagFPSOverride;
-            public float flagFPSOverride;
+            public FlagOverrides flagOverrides;
+
+            [Serializable]
+            public struct FlagOverrides
+            {
+                public bool overridePlatform;
+                public RuntimePlatform platform;
+                public bool overrideFPS;
+                public float fps;
+            }
         }
     }
 }

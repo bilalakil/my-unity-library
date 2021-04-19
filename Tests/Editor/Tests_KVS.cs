@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.TestTools;
 
@@ -10,18 +12,34 @@ namespace MyLibrary
     /**
      * WARNING: Running these tests will nuke the default KVS data!
      */
-    public class Tests_KVS
+    public class Tests_KVS : UnityEditorBDD
     {
+        const string ASSET_DIR = UnityEditorBDD.TEST_ASSET_DIR + "/KVS";
+
+        static string[] _configsToCleanUp = new string[]
+        {
+            ASSET_DIR + "/TestConfigStandard",
+            ASSET_DIR + "/TestConfigDifferentFilename"
+        };
+
         [SetUp]
+        public void ResetAndInitKVS()
+        {
+            ResetKVS();
+
+            KVS.Init();
+        }
+
         [TearDown]
         public void ResetKVS()
         {
             KVS.Deinit();
-            DestroyKVSOnDisk();
+            DestroyKVSOnDisk(_configsToCleanUp);
         }
 
 #region PlayerPrefs interface
         [Test]
+        [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
         public void DeleteAll_Works()
         {
             GivenKVSOnDisk(new KVS.Data { floats=new List<KVS.KVFloat> { new KVS.KVFloat { key="test", val=-9.9f } } });
@@ -37,6 +55,7 @@ namespace MyLibrary
         }
 
         [Test]
+        [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
         public void DeleteKey_WorksFromFile()
         {
             GivenKVSOnDisk(new KVS.Data {
@@ -56,6 +75,7 @@ namespace MyLibrary
         }
 
         [Test]
+        [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
         public void DeleteKey_WorksOnUnsavedValues()
         {
             GivenKVSOnDisk(new KVS.Data {
@@ -82,6 +102,7 @@ namespace MyLibrary
         }
 
         [Test]
+        [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
         public void DeleteKey_DoesNotThrowIfDeletingNothing()
         {
             WhenKVSDeleteKey("i");
@@ -91,6 +112,7 @@ namespace MyLibrary
         }
 
         [Test]
+        [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
         public void GetFloat_WorksFromFile()
         {
             GivenKVSOnDisk(new KVS.Data { floats=new List<KVS.KVFloat> { new KVS.KVFloat { key="test", val=-9.9f } } });
@@ -98,6 +120,7 @@ namespace MyLibrary
         }
         
         [Test]
+        [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
         public void GetFloat_DefaultValueWorks()
         {
             // GIVEN no KVS data
@@ -109,6 +132,7 @@ namespace MyLibrary
         }
 
         [Test]
+        [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
         public void GetFloat_DefaultReturnedForOtherTypes()
         {
             GivenKVSOnDisk(new KVS.Data {
@@ -129,6 +153,7 @@ namespace MyLibrary
         }
 
         [Test]
+        [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
         public void GetInt_WorksFromFile()
         {
             GivenKVSOnDisk(new KVS.Data { ints=new List<KVS.KVInt> { new KVS.KVInt { key="test", val=-9 } } });
@@ -136,6 +161,7 @@ namespace MyLibrary
         }
         
         [Test]
+        [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
         public void GetInt_DefaultValueWorks()
         {
             // GIVEN no KVS data
@@ -147,6 +173,7 @@ namespace MyLibrary
         }
 
         [Test]
+        [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
         public void GetInt_DefaultReturnedForOtherTypes()
         {
             GivenKVSOnDisk(new KVS.Data {
@@ -167,6 +194,7 @@ namespace MyLibrary
         }
 
         [Test]
+        [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
         public void GetString_WorksFromFile()
         {
             GivenKVSOnDisk(new KVS.Data { strs=new List<KVS.KVString> { new KVS.KVString { key="test", val="asd" } } });
@@ -174,6 +202,7 @@ namespace MyLibrary
         }
         
         [Test]
+        [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
         public void GetString_DefaultValueWorks()
         {
             // GIVEN no KVS data
@@ -185,6 +214,7 @@ namespace MyLibrary
         }
 
         [Test]
+        [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
         public void GetString_DefaultReturnedForOtherTypes()
         {
             GivenKVSOnDisk(new KVS.Data {
@@ -205,6 +235,7 @@ namespace MyLibrary
         }
 
         [Test]
+        [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
         public void HasKey_Works()
         {
             GivenKVSOnDisk(new KVS.Data {
@@ -234,6 +265,7 @@ namespace MyLibrary
         }
 
         [Test]
+        [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
         public void Save_Works()
         {
             WhenKVSSetFloat("test", 5.2f);
@@ -252,6 +284,7 @@ namespace MyLibrary
         }
         
         [Test]
+        [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
         public void SetFloat_Works()
         {
             WhenKVSSetFloat("test", 3.6f);
@@ -265,6 +298,7 @@ namespace MyLibrary
         }
         
         [Test]
+        [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
         public void SetInt_Works()
         {
             WhenKVSSetInt("test", 2);
@@ -278,6 +312,7 @@ namespace MyLibrary
         }
         
         [Test]
+        [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
         public void SetString_Works()
         {
             WhenKVSSetString("test", "grok");
@@ -291,6 +326,7 @@ namespace MyLibrary
         }
 
         [Test]
+        [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
         public void Mixed_Positive()
         {
             GivenKVSOnDisk(new KVS.Data {
@@ -311,6 +347,8 @@ namespace MyLibrary
                 },
             });
 
+            ThenKVSIsConfigured(true);
+            ThenKVSFilePathIs(Path.Combine(Application.persistentDataPath, "kvs.dat")); // As specified in MyLibraryConfig file
             ThenKVSGetFloatEquals("float1", float.MaxValue, -1f);
             ThenKVSGetFloatEquals("float2", float.MinValue, -2f);
             ThenKVSGetFloatEquals("float3", 0.0f);
@@ -379,6 +417,7 @@ namespace MyLibrary
 #endregion
 
         [Test]
+        [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
         public void Save_CalledOnTeardown()
         {
             WhenKVSSetFloat("test", 7.6f);
@@ -389,27 +428,59 @@ namespace MyLibrary
         }
 
         [Test]
+        [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
         public void InitialLoadDeletesMalformedDiskData()
         {
             GivenKVSOnDisk("this is an invalid kvs data file", true);
             WhenKVSInitialised();
             ThenKVSIsNotOnDisk();
         }
-        
-        void DestroyKVSOnDisk() =>
-            File.Delete(KVS.FilePath);
 
+        [Test]
+        public void KVSUnusableWhenNotConfigured()
+        {
+            // GIVEN no library config
+            ThenKVSIsConfigured(false);
+            ThenAllKVSOperationsFailForMissingConfig();
+        }
+
+        [Test]
+        [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigInvalidFilename")]
+        public void KVSUnusableWhenMisconfigured()
+        {
+            ThenKVSIsConfigured(false);
+            ThenAllKVSOperationsFailForMissingConfig();
+        }
+        
+        [Test]
+        [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigDifferentFilename")]
+        public void KVSWorksWithDifferentFilename()
+        {
+            // GIVEN a blank slate
+            ThenKVSIsNotOnDisk();
+            ThenKVSIsConfigured(true);
+
+            WhenKVSSetFloat("test", 7.6f);
+            WhenKVSSaved();
+            ThenKVSFilePathIs(Path.Combine(Application.persistentDataPath, "something-else.sav")); // As specified in MyLibraryConfig file
+            ThenKVSOnDiskMatches(new KVS.Data { floats=new List<KVS.KVFloat> { new KVS.KVFloat { key="test", val=7.6f } } });
+        }
+        
         void GivenKVSOnDisk(KVS.Data data) =>
             GivenKVSOnDisk(JsonUtility.ToJson(data));
         
         void GivenKVSOnDisk(string data, bool isInvalid=false)
         {
+            KVS.Deinit();
+
             if (isInvalid)
                 LogAssert.Expect(
                     LogType.Error,
                     new Regex("^Failed to convert saved data from JSON, nuking!")
                 );
             File.WriteAllText(KVS.FilePath, data);
+
+            KVS.Init();
         }
         
         void WhenKVSInitialised() =>
@@ -436,6 +507,9 @@ namespace MyLibrary
         void WhenKVSSetString(string key, string val) =>
             KVS.SetString(key, val);
         
+        void ThenKVSIsConfigured(bool expected) =>
+            Assert.AreEqual(expected, KVS.Configured);
+        
         void ThenKVSGetFloatEquals(string key, float expected, float defaultValue=0.0f) =>
             Assert.AreEqual(expected, KVS.GetFloat(key, defaultValue));
         
@@ -447,6 +521,32 @@ namespace MyLibrary
         
         void ThenKVSHasKey(string key, bool expected) =>
             Assert.AreEqual(expected, KVS.HasKey(key));
+        
+        void ThenAllKVSOperationsFailForMissingConfig()
+        {
+            var ops = new TestDelegate[]
+            {
+                KVS.DeleteAll,
+                () => KVS.DeleteKey("key"),
+                () => KVS.GetFloat("key"),
+                () => KVS.GetInt("key"),
+                () => KVS.GetString("key"),
+                () => KVS.HasKey("key"),
+                KVS.Save,
+                () => KVS.SetFloat("key", 0f),
+                () => KVS.SetInt("key", 0),
+                () => KVS.SetString("key", ""),
+            };
+
+            foreach (var op in ops)
+            {
+                var ex = Assert.Throws<InvalidOperationException>(op);
+                Assert.AreEqual("Cannot use KVS without setting up MyLibraryConfig.kvs", ex.Message);
+            }
+        }
+
+        void ThenKVSFilePathIs(string expected) =>
+            Assert.AreEqual(expected, KVS.FilePath);
         
         void ThenKVSOnDiskMatches(KVS.Data expected)
         {

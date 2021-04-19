@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.IO;
 using NUnit.Framework;
 using NUnit.Framework.Interfaces;
 using UnityEditor;
@@ -18,6 +19,15 @@ namespace MyLibrary
             var asset = AssetDatabase.LoadAssetAtPath<GameObject>(fullPath);
             var obj = GameObject.Instantiate(asset);
             return obj;
+        }
+
+        protected void DestroyKVSOnDisk(string[] configPaths)
+        {
+            foreach (var path in configPaths)
+            {
+                var config = AssetDatabase.LoadAssetAtPath<MyLibraryConfig>(path + ".asset");
+                File.Delete(Application.persistentDataPath + "/" + config.kvs.defaultFilename);
+            }
         }
 
         [AttributeUsage(AttributeTargets.Method)]

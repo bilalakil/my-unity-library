@@ -12,16 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1450a37c08390e64dbb6d2ffec152a9a, type: 3}
   m_Name: TestConfigStandard
   m_EditorClassIdentifier: 
-  kvs:
+  kvsConfig:
     defaultFilename: kvs.dat
-  volumes:
-  - ref: music
-    mixer: {fileID: 24100000, guid: f4cf4d1d0ec8a6e44ae264e2c7589bb0, type: 2}
-    mixerVolumeKey: MusicVolume
-  - ref: sfx
-    mixer: {fileID: 24100000, guid: f4cf4d1d0ec8a6e44ae264e2c7589bb0, type: 2}
-    mixerVolumeKey: SFXVolume
-  testing:
+  volumeConfigs: []
+  testConfig:
     flagOverrides:
       overridePlatform: 0
       platform: 0

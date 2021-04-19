@@ -10,6 +10,10 @@ namespace MyLibrary
      * Deals in percentages (e.g. 0.5 user volume and 0.5 dynamic volume results in 0.25 final).
      * Only final volumes between 0 and 1 have been properly considered.
      *
+     * ### REQUIREMENTS
+     * - MyLibraryConfig.volumes set up
+     * - To use user volume, KVS setup (see KVS.cs)
+     *
      * ### Persistence
      * Uses the default KVS to store user volume settings. 
      */
@@ -31,7 +35,7 @@ namespace MyLibrary
             {
                 if (_iBacking == null)
                 {
-                    Debug.LogError("Cannot change volume without setting MyLibraryConfig.volumeConfigs");
+                    Debug.LogError("Cannot change volume without setting up MyLibraryConfig.volumes");
                     return null;
                 }
 
@@ -39,14 +43,21 @@ namespace MyLibrary
             }
         }
 
+        static Action _quittingHandler;
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         public static void Init()
         {
+            if (_quittingHandler == null)
+            {
+                _quittingHandler = Deinit;
+                Application.quitting += _quittingHandler;
+            }
+
             if (_iBacking != null)
                 return;
 
-            var config = MyLibraryConfig.Load();
-            if (config?.volumeConfigs == null || config.volumeConfigs.Length == 0)
+            if ((MyLibraryConfig.I?.volumes?.Length ?? 0) == 0)
                 return;
             
             var obj = new GameObject("VolumeController");
@@ -54,24 +65,22 @@ namespace MyLibrary
             DontDestroyOnLoad(obj);
 
             _iBacking = obj.AddComponent<VolumeController>();
-            _iBacking.Use(config.volumeConfigs);
-
-            Action quittingHandler = null;
-            quittingHandler = () => {
-                Application.quitting -= quittingHandler;
-                Deinit();
-            };
-
-            Application.quitting += quittingHandler;
+            _iBacking.Use(MyLibraryConfig.I.volumes);
         }
 
         public static void Deinit()
         {
-            if (_iBacking == null)
-                return;
+            if (_quittingHandler != null)
+            {
+                Application.quitting -= _quittingHandler;
+                _quittingHandler = null;
+            }
 
-            Destroy(_iBacking.gameObject);
-            _iBacking = null;
+            if (_iBacking != null)
+            {
+                Destroy(_iBacking.gameObject);
+                _iBacking = null;
+            }
         }
 
         public static void SetUserVolume(string @ref, float val) =>
@@ -80,7 +89,7 @@ namespace MyLibrary
         public static float GetUserVolume(string @ref)
         {
             if (_iBacking == null)
-                throw new InvalidOperationException("Cannot get volume without setting MyLibraryConfig.volumeConfigs");
+                throw new InvalidOperationException("Cannot get volume without setting up MyLibraryConfig.volumes");
 
             return _iBacking.I_GetUserVolume(@ref);
         }
@@ -91,7 +100,7 @@ namespace MyLibrary
         public static float GetDynamicVolume(string @ref)
         {
             if (_iBacking == null)
-                throw new InvalidOperationException("Cannot get volume without setting MyLibraryConfig.volumeConfigs");
+                throw new InvalidOperationException("Cannot get volume without setting up MyLibraryConfig.volumes");
 
             return _iBacking.I_GetDynamicVolume(@ref);
         }
@@ -128,12 +137,14 @@ namespace MyLibrary
             _iBacking = null;
         }
 
-        void Use(MyLibraryConfig.VolumeConfig[] configs)
+        void Use(MyLibraryConfig.Volume[] configs)
         {
             _configArray = configs.Select(
                 c =>
                 {
-                    var userVolume = KVS.GetFloat(GetKeyForRef(c.@ref), 1f);
+                    var userVolume = KVS.Configured
+                        ? KVS.GetFloat(GetKeyForRef(c.@ref), 1f)
+                        : 1f;
 
                     return new VolumeConfig {
                         raw=c,
@@ -168,6 +179,12 @@ namespace MyLibrary
 
         void I_SetUserVolume(string @ref, float val)
         {
+            if (!KVS.Configured)
+            {
+                Debug.LogError("User volume cannot be used without setting up MyLibraryConfig.kvs");
+                return;
+            }
+
             if (!CheckRefExists(@ref, false))
                 return;
 
@@ -179,6 +196,9 @@ namespace MyLibrary
 
         float I_GetUserVolume(string @ref)
         {
+            if (!KVS.Configured)
+                throw new InvalidOperationException("User volume cannot be used without setting up MyLibraryConfig.kvs");
+
             CheckRefExists(@ref, true);
             return _configs[@ref].userVolume;
         }
@@ -223,7 +243,7 @@ namespace MyLibrary
         [Serializable]
         class VolumeConfig
         {
-            public MyLibraryConfig.VolumeConfig raw;
+            public MyLibraryConfig.Volume raw;
             public float userVolume;
             public float dynamicVolume;
         }

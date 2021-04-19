@@ -7,12 +7,15 @@ namespace MyLibrary
 {
     /**
      * ## Notes
-     * Replacement for Unity's PlayerPrefs (just change the class name),
+     * Replacement for Unity's PlayerPrefs (has the same set of static methods),
      * but saves to a file in Application.persistentDataPath
      * that is suitable in file-based cloud-save solutions (e.g. Steam).
      *
      * WARNING: Trivially edit-able by players. No encryption or in-memory protection
      * (as is also the case with Unity's PlayerPrefs).
+     *
+     * ### REQUIREMENTS
+     * - MyLibraryConfig.kvs set up
      *
      * ### Automatic saving
      * Attempts to save to disk during teardown.
@@ -40,39 +43,53 @@ namespace MyLibrary
             get
             {
                 if (_iBacking == null)
-                {
-                    var obj = new GameObject("KVS");
-                    obj.hideFlags = HideFlags.HideAndDontSave;
-                    DontDestroyOnLoad(obj);
-
-                    _iBacking = obj.AddComponent<KVS>();
-                }
+                    throw new InvalidOperationException("Cannot use KVS without setting up MyLibraryConfig.kvs");
 
                 return _iBacking;
             }
         }
 
-        // Needed for proper teardown in editor when skipping domain/scene reload
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void Init()
-        {
-            Action quittingHandler = null;
-            quittingHandler = () => {
-                Application.quitting -= quittingHandler;
-                Deinit();
-            };
+        static Action _quittingHandler;
 
-            Application.quitting += quittingHandler;
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        public static void Init()
+        {
+            if (_quittingHandler == null)
+            {
+                _quittingHandler = Deinit;
+                Application.quitting += _quittingHandler;
+            }
+
+            if (_iBacking != null)
+                return;
+
+            if (string.IsNullOrWhiteSpace(MyLibraryConfig.I?.kvs?.defaultFilename))
+                return;
+
+            var obj = new GameObject("KVS");
+            obj.hideFlags = HideFlags.HideAndDontSave;
+            DontDestroyOnLoad(obj);
+
+            _iBacking = obj.AddComponent<KVS>();
         }
 
         public static void Deinit()
         {
-            if (_iBacking == null)
-                return;
-            
-            Destroy(_iBacking.gameObject);
-            _iBacking = null;
+            if (_quittingHandler != null)
+            {
+                Application.quitting -= _quittingHandler;
+                _quittingHandler = null;
+            }
+
+            if (_iBacking != null)
+            {
+                Destroy(_iBacking.gameObject);
+                _iBacking = null;
+            }
         }
+
+        /// <summary>If false after initialisation then trying to use KVS will throw an error</summary>
+        public static bool Configured => _iBacking != null;
 
         // Linux's persistentDataPath does not including any application-specific part
         // (according to https://docs.unity3d.com/ScriptReference/Application-persistentDataPath.html),
@@ -80,7 +97,7 @@ namespace MyLibrary
         public static string FilePath =>
             Path.Combine(
                 Application.persistentDataPath,
-                Application.identifier + "_kvs_default.dat"
+                MyLibraryConfig.I.kvs.defaultFilename
             );
 
 #region PlayerPrefs interface
