@@ -34,30 +34,47 @@ namespace MyLibrary
         {
             get
             {
-                if (_iBacking == null)
+                if (!_haveInstantiated)
                 {
                     var obj = new GameObject("SoundController");
                     DontDestroyOnLoad(obj);
                     _iBacking = obj.AddComponent<SoundController>();
+
+                    var defaultSounds = Resources.Load<GameObject>("DefaultSounds");
+                    if (defaultSounds != null)
+                        DontDestroyOnLoad(Instantiate(defaultSounds));
                 }
 
                 return _iBacking;
             }
         }
         static SoundController _iBacking;
+        static bool _haveInstantiated;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void Reset() =>
+        static void Reset()
+        {
             _iBacking = null;
+            _haveInstantiated = false;
+        }
 
-        public static void RegisterSound(AudioSource sound) =>
-            _i.RegisterSound_(sound);
-        public static void DeregisterSound(AudioSource sound) =>
-            _i?.DeregisterSound_(sound);
-        /// <summary>See "Sound naming convention" in this file's notes.</summary>
+        public static void RegisterSound(AudioSource sound) => _i.RegisterSound_(sound);
+        public static void DeregisterSound(AudioSource sound) => _i?.DeregisterSound_(sound);
         public static AudioSource Get(string name) => _i.Get_(name);
-        /// <summary>See "Sound naming convention" in this file's notes.</summary>
-        public static void Play(string name) => _i.Get_(name).Play();
+        public static void Play(string name) => _i?.Get_(name).Play();
+        public static void PlayAtLocation(string name, Vector3 location)
+        {
+            if (_i == null)
+                return;
+
+            var sound = _i.Get_(name);
+            var obj = Instantiate(sound.gameObject, location, Quaternion.identity);
+            var newSound = obj.GetComponent<AudioSource>();
+
+            newSound.Play();
+
+            Destroy(obj, newSound.clip.length);
+        }
 
         Dictionary<string, List<AudioSource>> _sounds;
 
@@ -72,14 +89,8 @@ namespace MyLibrary
                 return;
             }
             _iBacking = this;
-
+            _haveInstantiated = true;
             _sounds = new Dictionary<string, List<AudioSource>>();
-
-            var defaultSounds = Resources.Load<GameObject>("DefaultSounds");
-            if (defaultSounds == null)
-                return;
-            
-            DontDestroyOnLoad(Instantiate(defaultSounds));
         }
 
         void OnDisable()
@@ -106,7 +117,9 @@ namespace MyLibrary
                 && _sounds[name].Contains(sound)
             );
             _sounds[name].Remove(sound);
-            if (_sounds[name].Count == 0) _sounds.Remove(name);
+
+            if (_sounds[name].Count == 0)
+                _sounds.Remove(name);
         }
 
         AudioSource Get_(string name)
