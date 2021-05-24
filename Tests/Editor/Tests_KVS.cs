@@ -40,7 +40,7 @@ namespace MyLibrary
 #region PlayerPrefs interface
         [Test]
         [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
-        public void DeleteAll_Works()
+        public void DeleteAll()
         {
             GivenKVSOnDisk(new KVS.Data { floats=new List<KVS.KVFloat> { new KVS.KVFloat { key="test", val=-9.9f } } });
             WhenKVSDeleteAll();
@@ -56,7 +56,7 @@ namespace MyLibrary
 
         [Test]
         [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
-        public void DeleteKey_WorksFromFile()
+        public void DeleteKey_FromFile()
         {
             GivenKVSOnDisk(new KVS.Data {
                 floats=new List<KVS.KVFloat> { new KVS.KVFloat { key="testfloat", val=0.4f } },
@@ -76,7 +76,7 @@ namespace MyLibrary
 
         [Test]
         [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
-        public void DeleteKey_WorksOnUnsavedValues()
+        public void DeleteKey_UnsavedValues()
         {
             GivenKVSOnDisk(new KVS.Data {
                 floats=new List<KVS.KVFloat> { new KVS.KVFloat { key="testfloat", val=0.4f } },
@@ -113,7 +113,7 @@ namespace MyLibrary
 
         [Test]
         [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
-        public void GetFloat_WorksFromFile()
+        public void GetFloat_FromFile()
         {
             GivenKVSOnDisk(new KVS.Data { floats=new List<KVS.KVFloat> { new KVS.KVFloat { key="test", val=-9.9f } } });
             ThenKVSGetFloatEquals("test", -9.9f);
@@ -121,7 +121,7 @@ namespace MyLibrary
         
         [Test]
         [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
-        public void GetFloat_DefaultValueWorks()
+        public void GetFloat_DefaultValue()
         {
             // GIVEN no KVS data
             ThenKVSGetFloatEquals("test", 4.0f, 4.0f);
@@ -154,7 +154,7 @@ namespace MyLibrary
 
         [Test]
         [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
-        public void GetInt_WorksFromFile()
+        public void GetInt_FromFile()
         {
             GivenKVSOnDisk(new KVS.Data { ints=new List<KVS.KVInt> { new KVS.KVInt { key="test", val=-9 } } });
             ThenKVSGetIntEquals("test", -9);
@@ -162,7 +162,7 @@ namespace MyLibrary
         
         [Test]
         [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
-        public void GetInt_DefaultValueWorks()
+        public void GetInt_DefaultValue()
         {
             // GIVEN no KVS data
             ThenKVSGetIntEquals("test", 4, 4);
@@ -195,7 +195,7 @@ namespace MyLibrary
 
         [Test]
         [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
-        public void GetString_WorksFromFile()
+        public void GetString_FromFile()
         {
             GivenKVSOnDisk(new KVS.Data { strs=new List<KVS.KVString> { new KVS.KVString { key="test", val="asd" } } });
             ThenKVSGetStringEquals("test", "asd");
@@ -203,7 +203,7 @@ namespace MyLibrary
         
         [Test]
         [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
-        public void GetString_DefaultValueWorks()
+        public void GetString_DefaultValue()
         {
             // GIVEN no KVS data
             ThenKVSGetStringEquals("test", "ddd", "ddd");
@@ -236,7 +236,7 @@ namespace MyLibrary
 
         [Test]
         [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
-        public void HasKey_Works()
+        public void HasKey()
         {
             GivenKVSOnDisk(new KVS.Data {
                 floats=new List<KVS.KVFloat> { new KVS.KVFloat { key="testfloat", val=0.4f } },
@@ -266,7 +266,7 @@ namespace MyLibrary
 
         [Test]
         [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
-        public void Save_Works()
+        public void Save()
         {
             WhenKVSSetFloat("test", 5.2f);
             WhenKVSSetFloat("test2", -13.1f);
@@ -285,7 +285,7 @@ namespace MyLibrary
         
         [Test]
         [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
-        public void SetFloat_Works()
+        public void SetFloat()
         {
             WhenKVSSetFloat("test", 3.6f);
             ThenKVSGetFloatEquals("test", 3.6f);
@@ -299,7 +299,7 @@ namespace MyLibrary
         
         [Test]
         [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
-        public void SetInt_Works()
+        public void SetInt()
         {
             WhenKVSSetInt("test", 2);
             ThenKVSGetIntEquals("test", 2);
@@ -313,7 +313,7 @@ namespace MyLibrary
         
         [Test]
         [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
-        public void SetString_Works()
+        public void SetString()
         {
             WhenKVSSetString("test", "grok");
             ThenKVSGetStringEquals("test", "grok");
@@ -437,7 +437,7 @@ namespace MyLibrary
         }
 
         [Test]
-        public void KVSUnusableWhenNotConfigured()
+        public void UnusableWhenNotConfigured()
         {
             // GIVEN no library config
             ThenKVSIsConfigured(false);
@@ -446,7 +446,7 @@ namespace MyLibrary
 
         [Test]
         [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigInvalidFilename")]
-        public void KVSUnusableWhenMisconfigured()
+        public void UnusableWhenMisconfigured()
         {
             ThenKVSIsConfigured(false);
             ThenAllKVSOperationsFailForMissingConfig();
@@ -454,7 +454,7 @@ namespace MyLibrary
         
         [Test]
         [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigDifferentFilename")]
-        public void KVSWorksWithDifferentFilename()
+        public void DifferentFilename()
         {
             // GIVEN a blank slate
             ThenKVSIsNotOnDisk();
@@ -464,6 +464,221 @@ namespace MyLibrary
             WhenKVSSaved();
             ThenKVSFilePathIs(Path.Combine(Application.persistentDataPath, "something-else.sav")); // As specified in MyLibraryConfig file
             ThenKVSOnDiskMatches(new KVS.Data { floats=new List<KVS.KVFloat> { new KVS.KVFloat { key="test", val=7.6f } } });
+        }
+
+        [Test]
+        [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
+        public void GetRawData_FromABlankSlate()
+        {
+            // GIVEN a blank slate
+            ThenKVSGetRawDataMatches(new KVS.Data());
+        }
+
+        [Test]
+        [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
+        public void GetRawData_FromDisk()
+        {
+            GivenKVSOnDisk(new KVS.Data {
+                floats=new List<KVS.KVFloat> { 
+                    new KVS.KVFloat { key="float1", val=float.MaxValue },
+                    new KVS.KVFloat { key="float2", val=float.MinValue },
+                },
+                ints=new List<KVS.KVInt> {
+                    new KVS.KVInt { key="int1", val=400 },
+                    new KVS.KVInt { key="int2", val=int.MinValue },
+                    new KVS.KVInt { key="int3", val=int.MaxValue },
+                },
+                strs=new List<KVS.KVString> {
+                    new KVS.KVString { key="string1", val="one" },
+                    new KVS.KVString { key="string2", val="TWO" },
+                    new KVS.KVString { key="string3", val="T#$!@" },
+                    new KVS.KVString { key="string4", val="fou4" },
+                },
+            });
+            ThenKVSGetRawDataMatches(new KVS.Data {
+                floats=new List<KVS.KVFloat> { 
+                    new KVS.KVFloat { key="float1", val=float.MaxValue },
+                    new KVS.KVFloat { key="float2", val=float.MinValue },
+                },
+                ints=new List<KVS.KVInt> {
+                    new KVS.KVInt { key="int1", val=400 },
+                    new KVS.KVInt { key="int2", val=int.MinValue },
+                    new KVS.KVInt { key="int3", val=int.MaxValue },
+                },
+                strs=new List<KVS.KVString> {
+                    new KVS.KVString { key="string1", val="one" },
+                    new KVS.KVString { key="string2", val="TWO" },
+                    new KVS.KVString { key="string3", val="T#$!@" },
+                    new KVS.KVString { key="string4", val="fou4" },
+                },
+            });
+        }
+
+        [Test]
+        [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
+        public void GetRawData_WithUpdates()
+        {
+            // GIVEN a blank slate
+            ThenKVSGetRawDataMatches(new KVS.Data());
+
+            WhenKVSSetFloat("float1", -1f);
+            WhenKVSSetFloat("float3", -40f);
+            WhenKVSSetInt("int2", -12);
+            WhenKVSSetInt("int4", -22);
+            WhenKVSSetString("string1", "one is back");
+            WhenKVSSetString("string3", "threeeee");
+            ThenKVSGetRawDataMatches(new KVS.Data {
+                floats=new List<KVS.KVFloat> { 
+                    new KVS.KVFloat { key="float1", val=-1f },
+                    new KVS.KVFloat { key="float3", val=-40f },
+                },
+                ints=new List<KVS.KVInt> {
+                    new KVS.KVInt { key="int2", val=-12 },
+                    new KVS.KVInt { key="int4", val=-22 },
+                },
+                strs=new List<KVS.KVString> {
+                    new KVS.KVString { key="string1", val="one is back" },
+                    new KVS.KVString { key="string3", val="threeeee" },
+                },
+            });
+
+            WhenKVSDeleteKey("float1");
+            WhenKVSDeleteKey("int2");
+            WhenKVSDeleteKey("string1");
+            ThenKVSGetRawDataMatches(new KVS.Data {
+                floats=new List<KVS.KVFloat> { 
+                    new KVS.KVFloat { key="float3", val=-40f },
+                },
+                ints=new List<KVS.KVInt> {
+                    new KVS.KVInt { key="int4", val=-22 },
+                },
+                strs=new List<KVS.KVString> {
+                    new KVS.KVString { key="string3", val="threeeee" },
+                },
+            });
+        }
+
+        [Test]
+        [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
+        public void SetRawData()
+        {
+            // GIVEN a blank slate
+            WhenKVSSetRawData(new KVS.Data {
+                floats=new List<KVS.KVFloat> { 
+                    new KVS.KVFloat { key="float1", val=-100f },
+                }
+            });
+            WhenKVSSetRawData(new KVS.Data {
+                floats=new List<KVS.KVFloat> { 
+                    new KVS.KVFloat { key="float1", val=-1f },
+                    new KVS.KVFloat { key="float3", val=-40f },
+                },
+                ints=new List<KVS.KVInt> {
+                    new KVS.KVInt { key="int2", val=-12 },
+                    new KVS.KVInt { key="int4", val=-22 },
+                },
+                strs=new List<KVS.KVString> {
+                    new KVS.KVString { key="string1", val="one is back" },
+                    new KVS.KVString { key="string3", val="threeeee" },
+                },
+            });
+            ThenKVSGetRawDataMatches(new KVS.Data {
+                floats=new List<KVS.KVFloat> { 
+                    new KVS.KVFloat { key="float1", val=-1f },
+                    new KVS.KVFloat { key="float3", val=-40f },
+                },
+                ints=new List<KVS.KVInt> {
+                    new KVS.KVInt { key="int2", val=-12 },
+                    new KVS.KVInt { key="int4", val=-22 },
+                },
+                strs=new List<KVS.KVString> {
+                    new KVS.KVString { key="string1", val="one is back" },
+                    new KVS.KVString { key="string3", val="threeeee" },
+                },
+            });
+
+            WhenKVSDeleteKey("float1");
+            WhenKVSDeleteKey("int2");
+            WhenKVSDeleteKey("string1");
+            WhenKVSSetRawData(new KVS.Data {
+                floats=new List<KVS.KVFloat> { 
+                    new KVS.KVFloat { key="float1", val=-1f },
+                },
+                ints=new List<KVS.KVInt> {
+                    new KVS.KVInt { key="int2", val=-12 },
+                },
+                strs=new List<KVS.KVString> {
+                    new KVS.KVString { key="string1", val="one is back" },
+                },
+            });
+            ThenKVSGetRawDataMatches(new KVS.Data {
+                floats=new List<KVS.KVFloat> { 
+                    new KVS.KVFloat { key="float1", val=-1f },
+                },
+                ints=new List<KVS.KVInt> {
+                    new KVS.KVInt { key="int2", val=-12 },
+                },
+                strs=new List<KVS.KVString> {
+                    new KVS.KVString { key="string1", val="one is back" },
+                },
+            });
+        }
+
+        [Test]
+        [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
+        public void SetRawData_FromDisk()
+        {
+            GivenKVSOnDisk(new KVS.Data {
+                floats=new List<KVS.KVFloat> { 
+                    new KVS.KVFloat { key="float1", val=float.MaxValue },
+                },
+                ints=new List<KVS.KVInt> {
+                    new KVS.KVInt { key="int1", val=400 },
+                    new KVS.KVInt { key="int2", val=int.MinValue },
+                },
+                strs=new List<KVS.KVString> {
+                    new KVS.KVString { key="string1", val="one" },
+                    new KVS.KVString { key="string4", val="fou4" },
+                },
+            });
+            WhenKVSSetRawData(new KVS.Data {
+                floats=new List<KVS.KVFloat> { 
+                    new KVS.KVFloat { key="float1", val=-100f },
+                },
+            });
+            ThenKVSGetRawDataMatches(new KVS.Data {
+                floats=new List<KVS.KVFloat> { 
+                    new KVS.KVFloat { key="float1", val=-100f },
+                },
+            });
+        }
+
+        [Test]
+        [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
+        public void OnSaveEvent()
+        {
+            WhenKVSSetFloat("test", 5.2f);
+            WhenKVSSetFloat("test2", -13.1f);
+            WhenKVSDeleteKey("test2");
+            ThenKVSOnSaveIsTriggeredOnce(WhenKVSSaved);
+
+            WhenKVSDeleteKey("test");
+            ThenKVSOnSaveIsTriggeredOnce(WhenKVSSaved);
+
+            WhenKVSSetRawData(new KVS.Data {
+                floats=new List<KVS.KVFloat> { 
+                    new KVS.KVFloat { key="float1", val=float.MaxValue },
+                },
+                ints=new List<KVS.KVInt> {
+                    new KVS.KVInt { key="int1", val=400 },
+                    new KVS.KVInt { key="int2", val=int.MinValue },
+                },
+                strs=new List<KVS.KVString> {
+                    new KVS.KVString { key="string1", val="one" },
+                    new KVS.KVString { key="string4", val="fou4" },
+                },
+            });
+            ThenKVSOnSaveIsTriggeredOnce(WhenKVSDeinitialised);
         }
         
         void GivenKVSOnDisk(KVS.Data data) =>
@@ -506,6 +721,9 @@ namespace MyLibrary
         
         void WhenKVSSetString(string key, string val) =>
             KVS.SetString(key, val);
+        
+        void WhenKVSSetRawData(KVS.Data data) =>
+            KVS.RawData = data;
         
         void ThenKVSIsConfigured(bool expected) =>
             Assert.AreEqual(expected, KVS.Configured);
@@ -555,6 +773,11 @@ namespace MyLibrary
                 : "{}";
             var actual = JsonUtility.FromJson<KVS.Data>(json);
 
+            AssertKVSDataIsEqual(actual, expected);
+        }
+
+        void AssertKVSDataIsEqual(KVS.Data actual, KVS.Data expected)
+        {
             Assert.AreEqual(expected.floats.Count, actual.floats.Count);
             for (var i = 0; i != actual.floats.Count; ++i)
             {
@@ -564,9 +787,38 @@ namespace MyLibrary
                     actual.floats[i].val
                 ));
             }
+
+            Assert.AreEqual(expected.ints.Count, actual.ints.Count);
+            for (var i = 0; i != actual.ints.Count; ++i)
+            {
+                Assert.AreEqual(expected.ints[i].key, actual.ints[i].key);
+                Assert.AreEqual(expected.ints[i].val, actual.ints[i].val);
+            }
+
+            Assert.AreEqual(expected.strs.Count, actual.strs.Count);
+            for (var i = 0; i != actual.strs.Count; ++i)
+            {
+                Assert.AreEqual(expected.strs[i].key, actual.strs[i].key);
+                Assert.AreEqual(expected.strs[i].val, actual.strs[i].val);
+            }
         }
 
         void ThenKVSIsNotOnDisk() =>
             Assert.IsFalse(File.Exists(KVS.FilePath));
+        
+        void ThenKVSGetRawDataMatches(KVS.Data expected) =>
+            AssertKVSDataIsEqual(KVS.RawData, expected);
+        
+        void ThenKVSOnSaveIsTriggeredOnce(Action whenThisHappens)
+        {
+            var triggerCount = 0;
+            Action onSaveAction = () => ++triggerCount;
+
+            KVS.onSave += onSaveAction;
+            whenThisHappens();
+            KVS.onSave -= onSaveAction;
+
+            Assert.AreEqual(1, triggerCount);
+        }
     }
 }

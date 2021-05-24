@@ -37,6 +37,8 @@ namespace MyLibrary
     [DefaultExecutionOrder(-10000)]
     public class KVS : MonoBehaviour
     {
+        public static event Action onSave;
+
         static KVS _iBacking;
         static KVS I
         {
@@ -71,6 +73,8 @@ namespace MyLibrary
             DontDestroyOnLoad(obj);
 
             _iBacking = obj.AddComponent<KVS>();
+
+            _iBacking.I_onSave += TriggerStaticOnSave;
         }
 
         public static void Deinit()
@@ -84,21 +88,31 @@ namespace MyLibrary
             if (_iBacking != null)
             {
                 Destroy(_iBacking.gameObject);
+
+                // Apparently this isn't needed here o.O
+                // _iBacking.I_onSave -= TriggerStaticOnSave;
+
                 _iBacking = null;
             }
         }
 
+        static void TriggerStaticOnSave() => onSave?.Invoke();
+
         /// <summary>If false after initialisation then trying to use KVS will throw an error</summary>
         public static bool Configured => _iBacking != null;
 
-        // Linux's persistentDataPath does not including any application-specific part
-        // (according to https://docs.unity3d.com/ScriptReference/Application-persistentDataPath.html),
-        // hence inclusion of Application.identifier here.
         public static string FilePath =>
             Path.Combine(
                 Application.persistentDataPath,
                 MyLibraryConfig.I.kvs.defaultFilename
             );
+        
+        /// <summary>WARNING: Direct modification is dangerous!</summary>
+        public static Data RawData
+        {
+            get => I._data;
+            set => I.UseData(value);
+        }
 
 #region PlayerPrefs interface
         public static void DeleteAll() =>
@@ -132,6 +146,8 @@ namespace MyLibrary
             I.I_SetString(key, val);
 #endregion
 
+        public event Action I_onSave;
+
         bool _hasLoadedFromDisk;
         Data _data = new Data();
 
@@ -150,9 +166,10 @@ namespace MyLibrary
 
             _iBacking = this;
 
-            if (!_hasLoadedFromDisk)
+            if (_hasLoadedFromDisk)
+                SetupIndices();
+            else
                 LoadFromDisk();
-            SetupIndices();
         }
 
         void OnDisable()
@@ -169,20 +186,30 @@ namespace MyLibrary
         {
             _hasLoadedFromDisk = true;
 
-            if (!File.Exists(FilePath))
-                return;
+            var data = new Data();
 
-            var json = File.ReadAllText(FilePath);
+            if (File.Exists(FilePath))
+            {
 
-            try
-            {
-                _data = JsonUtility.FromJson<Data>(json);
+                try
+                {
+                    var json = File.ReadAllText(FilePath);
+                    data = JsonUtility.FromJson<Data>(json);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"Failed to convert saved data from JSON, nuking! Exception:\n{e}");
+                    File.Delete(FilePath);
+                }
             }
-            catch (Exception e)
-            {
-                Debug.LogError($"Failed to convert saved data from JSON, nuking! Exception:\n{e}");
-                File.Delete(FilePath);
-            }
+
+            UseData(data);
+        }
+
+        void UseData(Data data)
+        {
+            _data = data;
+            SetupIndices();
         }
 
         void SetupIndices()
@@ -203,8 +230,8 @@ namespace MyLibrary
         public void I_DeleteAll()
         {
             File.Delete(FilePath);
-            _data = new Data();
-            SetupIndices();
+
+            UseData(new Data());
         }
 
         public void I_DeleteKey(string key)
@@ -268,6 +295,8 @@ namespace MyLibrary
         {
             var json = JsonUtility.ToJson(_data);
             File.WriteAllText(FilePath, json);
+
+            I_onSave?.Invoke();
         }
 
         public void I_SetFloat(string key, float val)
