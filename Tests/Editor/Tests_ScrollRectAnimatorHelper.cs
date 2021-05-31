@@ -89,6 +89,38 @@ namespace MyLibrary
             ThenAnimatorBoolIs(anim, "IsScrolledToBottom", true);
         }
 
+        [UnityTest]
+        public IEnumerator BottomTopPadding()
+        {
+            var (obj, anim, scrollRect) = GivenScrollRectAnimatorHelperWithPadding(20f);
+            WhenScrollRectContentHeightChanges(scrollRect, 260);
+            yield return WhenEndOfFrame(2);
+            WhenScrollRectPositionChanges(scrollRect, 1f); // 0 -> 200
+            yield return WhenEndOfFrame();
+            ThenAnimatorBoolIs(anim, "IsScrolledToTop", true);
+            ThenAnimatorBoolIs(anim, "IsScrolledToBottom", false);
+
+            WhenScrollRectPositionChanges(scrollRect, 0.75f); // 15 -> 215
+            yield return WhenEndOfFrame();
+            ThenAnimatorBoolIs(anim, "IsScrolledToTop", true);
+            ThenAnimatorBoolIs(anim, "IsScrolledToBottom", false);
+
+            WhenScrollRectPositionChanges(scrollRect, 0.5f); // 30 -> 230
+            yield return WhenEndOfFrame(2);
+            ThenAnimatorBoolIs(anim, "IsScrolledToTop", false);
+            ThenAnimatorBoolIs(anim, "IsScrolledToBottom", false);
+
+            WhenScrollRectPositionChanges(scrollRect, 0.25f); // 45 -> 245
+            yield return WhenEndOfFrame();
+            ThenAnimatorBoolIs(anim, "IsScrolledToTop", false);
+            ThenAnimatorBoolIs(anim, "IsScrolledToBottom", true);
+
+            WhenScrollRectPositionChanges(scrollRect, 0f); // 60 -> 260
+            yield return WhenEndOfFrame();
+            ThenAnimatorBoolIs(anim, "IsScrolledToTop", false);
+            ThenAnimatorBoolIs(anim, "IsScrolledToBottom", true);
+        }
+
         (GameObject, Animator, ScrollRect) GivenScrollRectAnimatorHelper()
         {
             var obj = GivenTestGameObject(
@@ -96,6 +128,20 @@ namespace MyLibrary
             );
             var anim = obj.GetComponentInChildren<Animator>();
             var scrollRect = obj.GetComponentInChildren<ScrollRect>();
+
+            return (obj, anim, scrollRect);
+        }
+
+        (GameObject, Animator, ScrollRect) GivenScrollRectAnimatorHelperWithPadding(float padding)
+        {
+            var obj = GivenTestGameObject(
+                "ScrollRectAnimatorHelper/ScrollRectAnimatorHelper.prefab"
+            );
+            var anim = obj.GetComponentInChildren<Animator>();
+            var scrollRect = obj.GetComponentInChildren<ScrollRect>();
+
+            var helper = obj.GetComponentInChildren<ScrollRectAnimatorHelper>();
+            helper.padding = padding;
 
             return (obj, anim, scrollRect);
         }

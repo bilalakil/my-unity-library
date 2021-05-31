@@ -6,6 +6,8 @@ namespace MyLibrary
 {
     public class ScrollRectAnimatorHelper : MonoBehaviour
     {
+        public float padding = 0f;
+
         ScrollRect _scrollRect;
         Animator _animator;
 
@@ -41,8 +43,10 @@ namespace MyLibrary
             bool isTop, isBottom;
             if (_scrollRect.content.rect.height > _scrollRect.viewport.rect.height)
             {
-                isTop = _scrollRect.verticalNormalizedPosition >= 1;
-                isBottom = _scrollRect.verticalNormalizedPosition <= 0;
+                var paddableSpace = _scrollRect.content.rect.height - _scrollRect.viewport.rect.height;
+                var normalisedPadding = padding / paddableSpace;
+                isTop = _scrollRect.verticalNormalizedPosition >= 1 - normalisedPadding;
+                isBottom = _scrollRect.verticalNormalizedPosition <= 0 + normalisedPadding;
             }
             else
                 isTop = isBottom = true;
