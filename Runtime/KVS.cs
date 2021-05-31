@@ -53,7 +53,7 @@ namespace MyLibrary
 
         static Action _quittingHandler;
 
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         public static void Init()
         {
             if (_quittingHandler == null)

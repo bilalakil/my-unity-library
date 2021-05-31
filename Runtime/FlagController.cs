@@ -28,7 +28,7 @@ namespace MyLibrary
         static FlagController _iBacking;
         static bool _haveInstantiated;
 
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Init()
         {
             _iBacking = null;
