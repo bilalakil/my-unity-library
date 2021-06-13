@@ -7,6 +7,7 @@ namespace MyLibrary
     {
         public Rect worldRect;
         public RectTransform uiRect;
+        public Vector3 extraOffset;
 
         Camera _cam;
         float _initialZ;
@@ -64,7 +65,7 @@ namespace MyLibrary
             }
 
             var offset = worldRect.center - containerCentre;
-            transform.position = new Vector3(offset.x, offset.y, _initialZ);
+            transform.position = new Vector3(offset.x, offset.y, _initialZ) + extraOffset;
         }
     }
 }
