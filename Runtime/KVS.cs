@@ -3,6 +3,10 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
 namespace MyLibrary
 {
     /**
@@ -95,6 +99,27 @@ namespace MyLibrary
                 _iBacking = null;
             }
         }
+
+#if UNITY_EDITOR
+        [MenuItem("Edit/Clear All KVS")]
+        public static void DeleteAll_Editor()
+        {
+            if (Application.isPlaying)
+                throw new NotSupportedException("KVS: Cannot delete via menu while in play mode");
+
+            var config = Resources.Load<MyLibraryConfig>("MyLibraryConfig");
+            if (string.IsNullOrEmpty(config?.kvs.defaultFilename))
+                throw new InvalidOperationException("Cannot use KVS without setting up MyLibraryConfig.kvs");
+
+            var path = Path.Combine(
+                Application.persistentDataPath,
+                config.kvs.defaultFilename
+            );
+
+            File.Delete(path);
+            Debug.Log("Deleted stored KVS");
+        }
+#endif
 
         static void TriggerStaticOnSave() => onSave?.Invoke();
 
