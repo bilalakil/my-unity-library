@@ -1,0 +1,16 @@
+{
+    "name": "BilalAkil.MyLibrary.SampleScripts",
+    "rootNamespace": "",
+    "references": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "NEVER_HAPPEN"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
