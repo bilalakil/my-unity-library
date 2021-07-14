@@ -7,6 +7,10 @@ using UnityEngine;
 using UnityEditor;
 #endif
 
+#if UNITY_WEBGL && !UNITY_EDITOR
+using System.Runtime.InteropServices;
+#endif
+
 namespace MyLibrary
 {
     /**
@@ -42,6 +46,10 @@ namespace MyLibrary
     public class KVS : MonoBehaviour
     {
         public static event Action onSave;
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+        [DllImport("__Internal")] static extern void SyncIndexedDB();
+#endif
 
         static KVS _iBacking;
         static KVS I
@@ -320,6 +328,10 @@ namespace MyLibrary
         {
             var json = JsonUtility.ToJson(_data);
             File.WriteAllText(FilePath, json);
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+            SyncIndexedDB();
+#endif
 
             I_onSave?.Invoke();
         }
