@@ -3,6 +3,7 @@
 namespace MyLibrary
 {
     [RequireComponent(typeof(Camera))]
+    [ExecuteAlways]
     public class CameraRectPositioner2D : MonoBehaviour
     {
         public Rect worldRect;
@@ -11,15 +12,13 @@ namespace MyLibrary
 
         Camera _cam;
         float _initialZ;
-        float _initialSize;
 
         Vector3[] uiRectCorners = new Vector3[4];
 
-        void Awake()
+        void OnEnable()
         {
             _cam = GetComponent<Camera>();
             _initialZ = transform.position.z;
-            _initialSize = _cam.orthographicSize;
         }
 
         void Update()
@@ -30,8 +29,9 @@ namespace MyLibrary
             {
                 // Camera size/position influences screen -> world conversions,
                 // so we need to keep them static for calculations.
+                var sampleOrthSize = 5f;
                 transform.position = new Vector3(0f, 0f, _initialZ);
-                _cam.orthographicSize = _initialSize;
+                _cam.orthographicSize = sampleOrthSize;
 
                 uiRect.GetWorldCorners(uiRectCorners);
                 var br = uiRectCorners[0];
@@ -49,8 +49,8 @@ namespace MyLibrary
                 var yFactor = container.height / worldRect.height;
 
                 _cam.orthographicSize = Mathf.Max(
-                    _initialSize / xFactor,
-                    _initialSize / yFactor
+                    sampleOrthSize / xFactor,
+                    sampleOrthSize / yFactor
                 );
             }
             else
@@ -67,5 +67,9 @@ namespace MyLibrary
             var offset = worldRect.center - containerCentre;
             transform.position = new Vector3(offset.x, offset.y, _initialZ) + extraOffset;
         }
+
+#if UNITY_EDITOR
+        void OnValidate() => OnEnable();
+#endif
     }
 }
