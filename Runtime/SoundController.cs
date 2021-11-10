@@ -69,11 +69,14 @@ namespace MyLibrary
 
             var sound = _i.Get_(name);
             var obj = Instantiate(sound.gameObject, location, Quaternion.identity);
+            var attachedBlank = obj.AddComponent<BlankMonoBehaviour>();
             var newSound = obj.GetComponent<AudioSource>();
 
             newSound.Play();
 
-            Destroy(obj, newSound.clip.length);
+            new Async(attachedBlank)
+                .Wait(newSound.clip.length, TimeMode.Unscaled)
+                .Then(() => Destroy(obj));
         }
 
         Dictionary<string, List<AudioSource>> _sounds;
