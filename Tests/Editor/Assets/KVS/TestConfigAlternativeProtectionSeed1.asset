@@ -10,11 +10,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1450a37c08390e64dbb6d2ffec152a9a, type: 3}
-  m_Name: TestConfigDifferentFilename
+  m_Name: TestConfigAlternativeProtectionSeed1
   m_EditorClassIdentifier: 
   kvs:
-    defaultFilename: something-else.sav
-    protectionSeed: 1853807735
+    defaultFilename: kvs.dat
+    protectionSeed: 1639418003
   volumes: []
   testing:
     flagOverrides:

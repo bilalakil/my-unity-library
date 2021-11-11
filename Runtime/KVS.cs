@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Security.Cryptography;
+using System.Text;
 using UnityEngine;
 
 #if UNITY_EDITOR
@@ -179,6 +181,12 @@ namespace MyLibrary
             I.I_SetString(key, val);
 #endregion
 
+        public static string GetStringProtected(string key, int salt, string defaultValue="") =>
+            I.I_GetStringProtected(key, salt, defaultValue);
+
+        public static void SetStringProtected(string key, int salt, string val) =>
+            I.I_SetStringProtected(key, salt, val);
+
         public event Action I_onSave;
 
         bool _hasLoadedFromDisk;
@@ -319,10 +327,37 @@ namespace MyLibrary
             _intIndices.ContainsKey(key) ||
             _strIndices.ContainsKey(key);
         
-        public string I_GetString(string key, string defaultValue="") =>
-            _strIndices.ContainsKey(key)
-                ? _data.strs[_strIndices[key]].val
-                : defaultValue;
+        public string I_GetString(string key, string defaultValue="")
+        {
+            if (!_strIndices.ContainsKey(key))
+                return defaultValue;
+
+            var strData = _data.strs[_strIndices[key]];
+            if (!string.IsNullOrEmpty(strData.protection))
+            {
+                I_DeleteKey(key);
+                return defaultValue;
+            }
+
+            return strData.val;
+        }
+
+        public string I_GetStringProtected(string key, int salt, string defaultValue="")
+        {
+            if (!_strIndices.ContainsKey(key))
+                return defaultValue;
+
+            var strData = _data.strs[_strIndices[key]];
+            if (!string.IsNullOrEmpty(strData.protection))
+            {
+                var protection = GetProtectionHash(strData.val, salt);
+                if (protection == strData.protection)
+                    return strData.val;
+            }
+
+            I_DeleteKey(key);
+            return defaultValue;
+        }
         
         public void I_Save()
         {
@@ -365,13 +400,40 @@ namespace MyLibrary
         public void I_SetString(string key, string val)
         {
             var kv = new KVString { key=key, val=val };
+            SetStringKV(key, kv);
+        }
 
+        public void I_SetStringProtected(string key, int salt, string val)
+        {
+            var protection = GetProtectionHash(val, salt);
+            var kv = new KVString { key=key, val=val, protection=protection };
+            SetStringKV(key, kv);
+        }
+
+        void SetStringKV(string key, KVString kv)
+        {
             if (_strIndices.ContainsKey(key))
                 _data.strs[_strIndices[key]] = kv;
             else
             {
                 _strIndices[key] = _data.strs.Count;
                 _data.strs.Add(kv);
+            }
+        }
+
+        string GetProtectionHash(string data, int salt)
+        {
+            var fullSalt = (long)MyLibraryConfig.I.kvs.protectionSeed * salt;
+            var saltedData = $"{fullSalt}{data}";
+            using (var md5 = MD5.Create())
+            {
+                var inputBytes = System.Text.Encoding.ASCII.GetBytes(saltedData);
+                var hashBytes = md5.ComputeHash(inputBytes);
+
+                var hexSB = new StringBuilder();
+                for (int i = 0; i < hashBytes.Length; i++)
+                    hexSB.Append(hashBytes[i].ToString("X2"));
+                return hexSB.ToString();
             }
         }
         
@@ -402,6 +464,7 @@ namespace MyLibrary
         {
             public string key;
             public string val;
+            public string protection;
         }
     }
 }

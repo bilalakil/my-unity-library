@@ -206,6 +206,9 @@ namespace MyLibrary
         public void GetString_DefaultValue()
         {
             // GIVEN no KVS data
+            ThenKVSGetStringEquals("test", "");
+            ThenKVSGetStringEquals("test", "", "");
+            ThenKVSGetStringEquals("test", null, null);
             ThenKVSGetStringEquals("test", "ddd", "ddd");
             ThenKVSGetStringEquals("test", "moo", "moo");
 
@@ -416,6 +419,70 @@ namespace MyLibrary
         }
 #endregion
 
+        [Test]
+        [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
+        public void SetStringProtected()
+        {
+            WhenKVSSetStringProtected("test", 9846, "frog");
+            ThenKVSGetStringProtectedEquals("test", 9846, "frog");
+
+            WhenKVSSetStringProtected("test", 123, "grok");
+            ThenKVSGetStringProtectedEquals("test", 123, "grok");
+            WhenKVSSaved();
+            ThenKVSOnDiskMatches(new KVS.Data { strs=new List<KVS.KVString> { new KVS.KVString { key="test", val="grok", protection="BE436A415DE17DDEE8A1B8A54B130D4E" } } });
+
+            WhenKVSSetStringProtected("test", 1649, "grok");
+            ThenKVSGetStringProtectedEquals("test", 1649, "grok");
+            WhenKVSSaved();
+            ThenKVSOnDiskMatches(new KVS.Data { strs=new List<KVS.KVString> { new KVS.KVString { key="test", val="grok", protection="A89F85AFAAC865EC7049E14E47FF5A26" } } });
+        }
+
+        [Test]
+        [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigAlternativeProtectionSeed1")]
+        public void SetStringProtected_AlternativeKVSProtectionSeed1()
+        {
+            WhenKVSSetStringProtected("test", 1649, "grok");
+            ThenKVSGetStringProtectedEquals("test", 1649, "grok");
+
+            WhenKVSSaved();
+            ThenKVSOnDiskMatches(new KVS.Data { strs=new List<KVS.KVString> { new KVS.KVString { key="test", val="grok", protection="FCAF96D062C76DABAB63BBB91485281B" } } });
+        }
+
+        [Test]
+        [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigAlternativeProtectionSeed2")]
+        public void SetStringProtected_AlternativeKVSProtectionSeed2()
+        {
+            WhenKVSSetStringProtected("test", 1649, "grok");
+            ThenKVSGetStringProtectedEquals("test", 1649, "grok");
+
+            WhenKVSSaved();
+            ThenKVSOnDiskMatches(new KVS.Data { strs=new List<KVS.KVString> { new KVS.KVString { key="test", val="grok", protection="B1A0F596D1A7297B51D8FF857BBAB42F" } } });
+        }
+
+        [Test]
+        [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
+        public void GetStringProtected_ClearsWhenInvalid()
+        {
+            WhenKVSSetStringProtected("test", 1649, "frog");
+            WhenKVSSaved();
+            ThenKVSGetStringProtectedEquals("test", 123, "");
+            ThenKVSGetStringProtectedEquals("test", 123, "asd", "asd");
+            WhenKVSSaved();
+            ThenKVSOnDiskMatches(new KVS.Data {});
+        }
+
+        [Test]
+        [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
+        public void GetString_ClearsWhenProtected()
+        {
+            WhenKVSSetStringProtected("test", 1649, "frog");
+            WhenKVSSaved();
+            ThenKVSGetStringEquals("test", "");
+            ThenKVSGetStringEquals("test", "asd", "asd");
+            WhenKVSSaved();
+            ThenKVSOnDiskMatches(new KVS.Data {});
+        }
+        
         [Test]
         [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigStandard")]
         public void Save_CalledOnTeardown()
@@ -722,6 +789,9 @@ namespace MyLibrary
         void WhenKVSSetString(string key, string val) =>
             KVS.SetString(key, val);
         
+        void WhenKVSSetStringProtected(string key, int salt, string val) =>
+            KVS.SetStringProtected(key, salt, val);
+        
         void WhenKVSSetRawData(KVS.Data data) =>
             KVS.RawData = data;
         
@@ -736,6 +806,9 @@ namespace MyLibrary
         
         void ThenKVSGetStringEquals(string key, string expected, string defaultValue="") =>
             Assert.AreEqual(expected, KVS.GetString(key, defaultValue));
+
+        void ThenKVSGetStringProtectedEquals(string key, int salt, string expected, string defaultValue="") =>
+            Assert.AreEqual(expected, KVS.GetStringProtected(key, salt, defaultValue));
         
         void ThenKVSHasKey(string key, bool expected) =>
             Assert.AreEqual(expected, KVS.HasKey(key));
@@ -800,6 +873,7 @@ namespace MyLibrary
             {
                 Assert.AreEqual(expected.strs[i].key, actual.strs[i].key);
                 Assert.AreEqual(expected.strs[i].val, actual.strs[i].val);
+                Assert.AreEqual(expected.strs[i].protection ?? "", actual.strs[i].protection ?? "");
             }
         }
 

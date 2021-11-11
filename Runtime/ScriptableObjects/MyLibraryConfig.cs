@@ -61,6 +61,7 @@ namespace MyLibrary
         public class KVS
         {
             public string defaultFilename = "kvs.dat";
+            public int protectionSeed = new System.Random().Next();
         }
 
         [Serializable]
