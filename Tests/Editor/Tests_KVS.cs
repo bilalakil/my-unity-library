@@ -19,7 +19,10 @@ namespace MyLibrary
         static string[] _configsToCleanUp = new string[]
         {
             ASSET_DIR + "/TestConfigStandard",
-            ASSET_DIR + "/TestConfigDifferentFilename"
+            ASSET_DIR + "/TestConfigAlternativeProtectionSeed1",
+            ASSET_DIR + "/TestConfigAlternativeProtectionSeed2",
+            ASSET_DIR + "/TestConfigDifferentEditorFilename",
+            ASSET_DIR + "/TestConfigNoEditorFilename"
         };
 
         [SetUp]
@@ -351,7 +354,7 @@ namespace MyLibrary
             });
 
             ThenKVSIsConfigured(true);
-            ThenKVSFilePathIs(Path.Combine(Application.persistentDataPath, "kvs.dat")); // As specified in MyLibraryConfig file
+            ThenKVSFilePathIs(Path.Combine(Application.persistentDataPath, "kvs-editor.dat")); // As specified in MyLibraryConfig file
             ThenKVSGetFloatEquals("float1", float.MaxValue, -1f);
             ThenKVSGetFloatEquals("float2", float.MinValue, -2f);
             ThenKVSGetFloatEquals("float3", 0.0f);
@@ -520,8 +523,8 @@ namespace MyLibrary
         }
         
         [Test]
-        [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigDifferentFilename")]
-        public void DifferentFilename()
+        [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigDifferentEditorFilename")]
+        public void DifferentEditorFilename()
         {
             // GIVEN a blank slate
             ThenKVSIsNotOnDisk();
@@ -530,6 +533,20 @@ namespace MyLibrary
             WhenKVSSetFloat("test", 7.6f);
             WhenKVSSaved();
             ThenKVSFilePathIs(Path.Combine(Application.persistentDataPath, "something-else.sav")); // As specified in MyLibraryConfig file
+            ThenKVSOnDiskMatches(new KVS.Data { floats=new List<KVS.KVFloat> { new KVS.KVFloat { key="test", val=7.6f } } });
+        }
+        
+        [Test]
+        [GivenMyLibraryConfig(ASSET_DIR + "/TestConfigNoEditorFilename")]
+        public void NoEditorFilename()
+        {
+            // GIVEN a blank slate
+            ThenKVSIsNotOnDisk();
+            ThenKVSIsConfigured(true);
+
+            WhenKVSSetFloat("test", 7.6f);
+            WhenKVSSaved();
+            ThenKVSFilePathIs(Path.Combine(Application.persistentDataPath, "not-editor.dat")); // As specified in MyLibraryConfig file
             ThenKVSOnDiskMatches(new KVS.Data { floats=new List<KVS.KVFloat> { new KVS.KVFloat { key="test", val=7.6f } } });
         }
 

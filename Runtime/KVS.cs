@@ -121,12 +121,7 @@ namespace MyLibrary
             if (string.IsNullOrEmpty(config?.kvs.defaultFilename))
                 throw new InvalidOperationException("Cannot use KVS without setting up MyLibraryConfig.kvs");
 
-            var path = Path.Combine(
-                Application.persistentDataPath,
-                config.kvs.defaultFilename
-            );
-
-            File.Delete(path);
+            File.Delete(FilePathForConfig(config));
             Debug.Log("Deleted stored KVS");
         }
 #endif
@@ -136,10 +131,17 @@ namespace MyLibrary
         /// <summary>If false after initialisation then trying to use KVS will throw an error</summary>
         public static bool Configured => _iBacking != null;
 
-        public static string FilePath =>
+        public static string FilePath => FilePathForConfig(MyLibraryConfig.I);
+        public static string FilePathForConfig(MyLibraryConfig config) => 
             Path.Combine(
                 Application.persistentDataPath,
-                MyLibraryConfig.I.kvs.defaultFilename
+#if UNITY_EDITOR
+                string.IsNullOrEmpty(config.testing.kvsEditorFilename)
+                    ? config.kvs.defaultFilename
+                    : config.testing.kvsEditorFilename
+#else
+                config.kvs.defaultFilename
+#endif
             );
         
         /// <summary>WARNING: Direct modification is dangerous!</summary>

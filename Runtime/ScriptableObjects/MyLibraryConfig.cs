@@ -75,8 +75,9 @@ namespace MyLibrary
         public Testing testing;
 
         [Serializable]
-        public struct Testing
+        public class Testing
         {
+            public string kvsEditorFilename = "kvs-editor.dat";
             public FlagOverrides flagOverrides;
 
             [Serializable]

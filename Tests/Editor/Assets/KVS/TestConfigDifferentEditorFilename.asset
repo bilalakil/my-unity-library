@@ -10,14 +10,14 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1450a37c08390e64dbb6d2ffec152a9a, type: 3}
-  m_Name: TestConfigInvalidFilename
+  m_Name: TestConfigDifferentEditorFilename
   m_EditorClassIdentifier: 
   kvs:
-    defaultFilename: '     '
-    protectionSeed: 1400737788
+    defaultFilename: something-else-but-unused.sav
+    protectionSeed: 1853807735
   volumes: []
   testing:
-    kvsEditorFilename: 
+    kvsEditorFilename: something-else.sav
     flagOverrides:
       overridePlatform: 0
       platform: 0

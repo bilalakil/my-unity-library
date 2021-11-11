@@ -26,7 +26,7 @@ namespace MyLibrary
             foreach (var path in configPaths)
             {
                 var config = AssetDatabase.LoadAssetAtPath<MyLibraryConfig>(path + ".asset");
-                File.Delete(Application.persistentDataPath + "/" + config.kvs.defaultFilename);
+                File.Delete(KVS.FilePathForConfig(config));
             }
         }
 
