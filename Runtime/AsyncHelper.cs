@@ -55,7 +55,7 @@ namespace MyLibrary
             float to,
             float over,
             Action<float> step,
-            TimeMode timeMode = TimeMode.Realtime
+            TimeMode timeMode = TimeMode.Scaled
         )
         {
             _steps.Add(() => LerpCoroutine(from, to, over, step, timeMode));
@@ -65,7 +65,7 @@ namespace MyLibrary
         public Async Lerp(
             float over,
             Action<float> step,
-            TimeMode timeMode = TimeMode.Realtime
+            TimeMode timeMode = TimeMode.Scaled
         ) => Lerp(0, 1, over, step, timeMode);
 
         IEnumerator LerpCoroutine(
@@ -81,7 +81,7 @@ namespace MyLibrary
 
             while (cumulative < over)
             {
-                var delta = timeMode == TimeMode.Realtime
+                var delta = timeMode == TimeMode.Scaled
                     ? Time.deltaTime
                     : Time.unscaledDeltaTime;
                 cumulative = Mathf.Min(cumulative + delta, over);
@@ -98,7 +98,7 @@ namespace MyLibrary
 
         // #### Wait
         
-        public Async Wait(float secs, TimeMode timeMode = TimeMode.Realtime)
+        public Async Wait(float secs, TimeMode timeMode = TimeMode.Scaled)
         {
             _steps.Add(() => WaitCoroutine(secs, timeMode));
             MaybeTakeStep();
@@ -107,10 +107,10 @@ namespace MyLibrary
 
         IEnumerator WaitCoroutine(float secs, TimeMode timeMode)
         {
-            if (timeMode == TimeMode.Realtime)
-                yield return new WaitForSecondsRealtime(secs);
-            else
+            if (timeMode == TimeMode.Scaled)
                 yield return new WaitForSeconds(secs);
+            else
+                yield return new WaitForSecondsRealtime(secs);
             FinishedStep();
         }
 
@@ -220,7 +220,7 @@ namespace MyLibrary
 
     public enum TimeMode
     {
-        Realtime,
+        Scaled,
         Unscaled
     }
 }
