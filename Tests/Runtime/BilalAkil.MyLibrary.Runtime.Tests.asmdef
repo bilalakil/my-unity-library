@@ -3,7 +3,8 @@
     "rootNamespace": "",
     "references": [
         "UnityEngine.TestRunner",
-        "BilalAkil.MyLibrary.Runtime"
+        "BilalAkil.MyLibrary.Runtime",
+        "BilalAkil.MyLibrary.Runtime.TestUtils"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

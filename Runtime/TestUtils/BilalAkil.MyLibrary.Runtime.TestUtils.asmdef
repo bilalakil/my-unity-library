@@ -1,13 +1,9 @@
 {
-    "name": "BilalAkil.MyLibrary.Editor.Tests",
+    "name": "BilalAkil.MyLibrary.Runtime.TestUtils",
     "rootNamespace": "",
     "references": [
         "UnityEngine.TestRunner",
-        "UnityEditor.TestRunner",
-        "BilalAkil.MyLibrary.Runtime",
-        "BilalAkil.MyLibrary.Runtime.TestUtils",
-        "BilalAkil.MyLibrary.Editor",
-        "BilalAkil.MyLibrary.Editor.TestUtils"
+        "BilalAkil.MyLibrary.Runtime"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
@@ -17,10 +13,7 @@
         "nunit.framework.dll"
     ],
     "autoReferenced": false,
-    "defineConstraints": [
-        "UNITY_EDITOR",
-        "UNITY_INCLUDE_TESTS"
-    ],
+    "defineConstraints": [],
     "versionDefines": [],
     "noEngineReferences": false
 }
