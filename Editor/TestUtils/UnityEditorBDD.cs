@@ -11,12 +11,11 @@ namespace MyLibrary
 {
     public class UnityEditorBDD : BDD
     {
-        public const string TEST_ASSET_DIR = "Packages/me.bilalakil.my-unity-library/Tests/Editor/Assets";
+        public const string PLUGIN_TEST_ASSET_DIR = "Packages/me.bilalakil.my-unity-library/Tests/Editor/Assets";
 
         protected GameObject GivenTestGameObject(string path)
         {
-            var fullPath = TEST_ASSET_DIR + "/" + path;
-            var asset = AssetDatabase.LoadAssetAtPath<GameObject>(fullPath);
+            var asset = AssetDatabase.LoadAssetAtPath<GameObject>(path);
             var obj = GameObject.Instantiate(asset);
             return obj;
         }

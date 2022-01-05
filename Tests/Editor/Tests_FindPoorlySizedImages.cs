@@ -6,7 +6,7 @@ namespace MyLibrary
 {
     public class Tests_FindPoorlySizedImages
     {
-        const string ASSET_DIR = UnityEditorBDD.TEST_ASSET_DIR + "/FindPoorlySizedImages";
+        const string ASSET_DIR = UnityEditorBDD.PLUGIN_TEST_ASSET_DIR + "/FindPoorlySizedImages";
 
         [Test]
         public void PositiveWithNoScaling()

@@ -14,7 +14,7 @@ namespace MyLibrary
      */
     public class Tests_KVS : UnityEditorBDD
     {
-        const string ASSET_DIR = UnityEditorBDD.TEST_ASSET_DIR + "/KVS";
+        const string ASSET_DIR = UnityEditorBDD.PLUGIN_TEST_ASSET_DIR + "/KVS";
 
         static string[] _configsToCleanUp = new string[]
         {

@@ -15,7 +15,7 @@ namespace MyLibrary
      */
     public class Tests_VolumeController : UnityEditorBDD
     {
-        const string ASSET_DIR = UnityEditorBDD.TEST_ASSET_DIR + "/VolumeController";
+        const string ASSET_DIR = UnityEditorBDD.PLUGIN_TEST_ASSET_DIR + "/VolumeController";
 
         static string[] _configsToCleanUp = new string[]
         {

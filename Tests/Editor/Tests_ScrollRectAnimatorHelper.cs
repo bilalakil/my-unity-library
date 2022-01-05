@@ -8,6 +8,8 @@ namespace MyLibrary
 {
     public class Tests_ScrollRectAnimatorHelper : UnityEditorBDD
     {
+        const string ASSET_DIR = UnityEditorBDD.PLUGIN_TEST_ASSET_DIR + "/ScrollRectAnimatorHelper";
+
         [UnityTest]
         public IEnumerator SelfDestructsWithNoAnimator()
         {
@@ -25,9 +27,7 @@ namespace MyLibrary
         [UnityTest]
         public IEnumerator SelfDestructsWithNoScrollRect()
         {
-            var obj = GivenTestGameObject(
-                "ScrollRectAnimatorHelper/GameObjectWithAnimator.prefab"
-            );
+            var obj = GivenTestGameObject(ASSET_DIR + "/GameObjectWithAnimator.prefab");
 
             var comp = WhenScrollRectAnimatorAdded(
                 obj,
@@ -123,9 +123,7 @@ namespace MyLibrary
 
         (GameObject, Animator, ScrollRect) GivenScrollRectAnimatorHelper()
         {
-            var obj = GivenTestGameObject(
-                "ScrollRectAnimatorHelper/ScrollRectAnimatorHelper.prefab"
-            );
+            var obj = GivenTestGameObject(ASSET_DIR + "/ScrollRectAnimatorHelper.prefab");
             var anim = obj.GetComponentInChildren<Animator>();
             var scrollRect = obj.GetComponentInChildren<ScrollRect>();
 
@@ -134,9 +132,7 @@ namespace MyLibrary
 
         (GameObject, Animator, ScrollRect) GivenScrollRectAnimatorHelperWithPadding(float padding)
         {
-            var obj = GivenTestGameObject(
-                "ScrollRectAnimatorHelper/ScrollRectAnimatorHelper.prefab"
-            );
+            var obj = GivenTestGameObject(ASSET_DIR + "/ScrollRectAnimatorHelper.prefab");
             var anim = obj.GetComponentInChildren<Animator>();
             var scrollRect = obj.GetComponentInChildren<ScrollRect>();
 
@@ -148,9 +144,7 @@ namespace MyLibrary
 
         (GameObject, Animator) GivenScrollRectWithoutAnimatorHelper()
         {
-            var obj = GivenTestGameObject(
-                "ScrollRectAnimatorHelper/ScrollRectWithoutAnimatorHelper.prefab"
-            );
+            var obj = GivenTestGameObject(ASSET_DIR + "/ScrollRectWithoutAnimatorHelper.prefab");
             var anim = obj.GetComponentInChildren<Animator>();
 
             return (obj, anim);
