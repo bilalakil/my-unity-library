@@ -12,7 +12,7 @@ namespace MyLibrary
         {
             while (numFrames > 0)
             {
-                yield return new WaitForEndOfFrame();
+                yield return null;
                 --numFrames;
             }
         }
