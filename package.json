@@ -1,5 +1,5 @@
 {
-  "version": "0.8.3",
+  "version": "0.8.4",
   "name": "me.bilalakil.my-unity-library",
   "displayName": "My Library",
   "type": "library",
@@ -8,5 +8,8 @@
     "name": "Bilal Akil",
     "email": "mail@bilalakil.me",
     "url": "https://bilalakil.me"
+  },
+  "dependencies": {
+    "com.unity.test-framework": "1.1.30"
   }
 }
