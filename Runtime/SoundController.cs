@@ -137,8 +137,9 @@ namespace MyLibrary
         {
             var baseName = sound.gameObject.StandardName();
             var minusNumbers = _nameEndPattern.Replace(baseName, "");
+            var stripped = minusNumbers.Trim();
 
-            return minusNumbers;
+            return stripped;
         }
     }
 }
