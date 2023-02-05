@@ -8,6 +8,7 @@ namespace MyLibrary
     public class Async
     {
         MonoBehaviour _owner;
+        Coroutine _currentCoro;
         bool _inStep;
         List<Func<IEnumerator>> _steps = new List<Func<IEnumerator>>();
 
@@ -20,7 +21,8 @@ namespace MyLibrary
             _inStep = true;
 
             var enumerator = _steps[0]();
-            if (enumerator != null) _owner.StartCoroutine(enumerator);
+            if (enumerator != null)
+                _currentCoro = _owner.StartCoroutine(enumerator);
 
             _steps.RemoveAt(0);
 
@@ -32,6 +34,9 @@ namespace MyLibrary
             _inStep = false;
             MaybeTakeStep();
         }
+
+        public void Cancel() =>
+            _owner.StopCoroutine(_currentCoro);
 
         // ## Coroutines
 

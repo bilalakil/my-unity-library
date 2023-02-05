@@ -28,6 +28,15 @@ namespace MyLibrary
     [DefaultExecutionOrder(-1000)]
     public class SoundController : MonoBehaviour
     {
+        class LoopDetails
+        {
+            public AudioSource Source;
+            public int Count;
+            public float InitialVolume;
+            public Async CurrentFade;
+        }
+
+
         static Regex _nameEndPattern = new Regex("[-_]*[0-9]+$");
 
         static SoundController _i
@@ -78,8 +87,11 @@ namespace MyLibrary
                 .Wait(newSound.clip.length, TimeMode.Unscaled)
                 .Then(() => Destroy(obj));
         }
+        public static void Loop(string name, float fadeTime = 0f) => _i?.Loop_(name, fadeTime);
+        public static void StopLooping(string name, float fadeTime = 0f) => _i?.StopLooping_(name, fadeTime);
 
-        Dictionary<string, List<AudioSource>> _sounds;
+        readonly Dictionary<string, List<AudioSource>> _sounds = new();
+        readonly Dictionary<string, LoopDetails> _loopCounts = new();
 
         void OnEnable()
         {
@@ -93,7 +105,8 @@ namespace MyLibrary
             }
             _iBacking = this;
             _haveInstantiated = true;
-            _sounds = new Dictionary<string, List<AudioSource>>();
+            _sounds.Clear();
+            _loopCounts.Clear();
         }
 
         void OnDisable()
@@ -131,6 +144,80 @@ namespace MyLibrary
                 throw new InvalidOperationException("Attempted to play non-existant sound: " + name);
 
             return _sounds[name][UnityEngine.Random.Range(0, _sounds[name].Count)];
+        }
+
+        void Loop_(string name, float fadeTime)
+        {
+            var fadeFromVolume = 0f;
+
+            if (_loopCounts.TryGetValue(name, out var loopDetails))
+            {
+                if (loopDetails.Count == 0)
+                {
+                    // Interrupt fade out
+
+                    fadeFromVolume = loopDetails.Source.volume;
+                    loopDetails.CurrentFade?.Cancel();
+                    loopDetails.CurrentFade = null;
+                }
+            }
+            else
+            {
+                var newSource = Get_(name);
+                newSource.loop = true;
+                newSource.Play();
+
+                loopDetails = new LoopDetails
+                {
+                    Source = newSource,
+                    Count = 0,
+                    InitialVolume = newSource.volume,
+                };
+                _loopCounts[name] = loopDetails;
+            }
+            
+            if (loopDetails.Count == 0 && fadeTime != 0f)
+                loopDetails.CurrentFade = new Async().Lerp(
+                    from: fadeFromVolume, to: loopDetails.InitialVolume, over: fadeTime,
+                    v => loopDetails.Source.volume = v
+                );
+
+            ++loopDetails.Count;
+        }
+
+        void StopLooping_(string name, float fadeTime)
+        {
+            if (!_loopCounts.TryGetValue(name, out var loopDetails))
+                return;
+
+            if (loopDetails.Count <= 0)
+                return;
+            --loopDetails.Count;
+            if (loopDetails.Count != 0)
+                return;
+
+            if (fadeTime == 0f)
+            {
+                loopDetails.Source.Stop();
+                _loopCounts.Remove(name);
+            }
+            else
+            {
+                var fadeFromVolume = loopDetails.Source.volume;
+                loopDetails.CurrentFade = new Async()
+                    .Lerp(
+                        from: fadeFromVolume, to: 0f, over: fadeTime,
+                        v => loopDetails.Source.volume = v
+                    )
+                    .Then(() =>
+                    {
+                        // This won't happen if the fade out is interrupted in Loop_()
+
+                        loopDetails.Source.Stop();
+                        loopDetails.Source.volume = loopDetails.InitialVolume;
+                        _loopCounts.Remove(name);
+                    });
+            }
         }
 
         string GetName(AudioSource sound)
