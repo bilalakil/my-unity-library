@@ -17,7 +17,8 @@ namespace MyLibrary
 
         void MaybeTakeStep()
         {
-            if (_steps.Count == 0 || _inStep) return;
+            if (_steps.Count == 0 || _inStep || _owner == null)
+				return;
             _inStep = true;
 
             var enumerator = _steps[0]();
