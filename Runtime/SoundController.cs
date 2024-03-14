@@ -90,8 +90,8 @@ namespace MyLibrary
         public static void Loop(string name, float fadeTime = 0f) => _i?.Loop_(name, fadeTime);
         public static void StopLooping(string name, float fadeTime = 0f) => _i?.StopLooping_(name, fadeTime);
 
-        readonly Dictionary<string, List<AudioSource>> _sounds = new();
-        readonly Dictionary<string, LoopDetails> _loopCounts = new();
+        readonly Dictionary<string, List<AudioSource>> _sounds = new Dictionary<string, List<AudioSource>>();
+        readonly Dictionary<string, LoopDetails> _loopCounts = new Dictionary<string, LoopDetails>();
 
         void OnEnable()
         {
