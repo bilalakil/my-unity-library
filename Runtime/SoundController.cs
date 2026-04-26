@@ -37,7 +37,7 @@ namespace MyLibrary
         }
 
 
-        static Regex _nameEndPattern = new Regex("[-_]*[0-9]+$");
+        static Regex _nameEndPattern;
 
         static SoundController _i
         {
@@ -45,6 +45,8 @@ namespace MyLibrary
             {
                 if (!_haveInstantiated)
                 {
+                    _nameEndPattern = new Regex("[-_]*[0-9]+$");
+
                     var obj = new GameObject("SoundController");
                     DontDestroyOnLoad(obj);
                     _iBacking = obj.AddComponent<SoundController>();

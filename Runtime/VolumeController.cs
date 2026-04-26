@@ -48,6 +48,13 @@ namespace MyLibrary
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         public static void Init()
         {
+            Application.onBeforeRender += DeferredInit;
+        }
+
+        static void DeferredInit()
+        {
+            Application.onBeforeRender -= DeferredInit;
+
             if (_quittingHandler == null)
             {
                 _quittingHandler = Deinit;

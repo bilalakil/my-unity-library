@@ -46,6 +46,13 @@ namespace MyLibrary
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Init()
         {
+            Application.onBeforeRender += DeferredInit;
+        }
+
+        static void DeferredInit()
+        {
+            Application.onBeforeRender -= DeferredInit;
+
             _iBacking = null;
             _haveInstantiated = false;
 
